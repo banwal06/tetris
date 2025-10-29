@@ -36,7 +36,7 @@ button{padding:10px 14px;border:1px solid var(--line);border-radius:8px;backgrou
 html, body { min-height: 100%; }
 body {
     background-color: #000; /* fallback while image loads */
-    background-image: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('assets/bg.jpg');
+    background-image: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('assets/tetris-bg.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
