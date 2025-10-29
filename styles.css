@@ -42,6 +42,18 @@ background-repeat:no-repeat;
 background-attachment:fixed;
 }
 
+.auth-overlay {
+position: fixed;
+top: 0; right: 0; bottom: 0; left: 0; / inset:0 대신 호환성 높은 방식 /
+width: 100vw; height: 100vh; / 일부 브라우저 안전망 /
+display: grid; / 가장 견고한 중앙 정렬 /
+place-items: center; / 수직+수평 중앙 */
+background: rgba(10,14,22,0.38);
+-webkit-backdrop-filter: blur(8px) saturate(0.9);
+backdrop-filter: blur(8px) saturate(0.9);
+z-index: 9999;
+}
+
 .auth-card {
 width:100%; max-width:360px;
 background:rgba(17,24,39,0.55); /* 반투명 유리 느낌 */
