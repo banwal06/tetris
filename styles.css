@@ -15,80 +15,118 @@ button{padding:10px 14px;border:1px solid var(--line);border-radius:8px;backgrou
 .task.completed .title{color:var(--muted);text-decoration:line-through}
 .title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .footer{margin-top:12px;display:flex;justify-content:flex-end}
+
 /* --- Tetris styles --- */
 #tetris-section { margin-top: 24px; }
-.tetris-ui {
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 12px; margin-bottom: 10px;
-}
-.tetris-stats { display: flex; gap: 14px; color: var(--text); }
-.tetris-controls { display: flex; gap: 8px; }
-.tetris-stage { display: flex; justify-content: center; }
+.tetris-ui { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; }
+.tetris-stats { display:flex; gap:14px; color:var(--text); }
+.tetris-controls { display:flex; gap:8px; }
+.tetris-stage { display:flex; justify-content:center; }
 #tetris {
-    background: #0b1220;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    image-rendering: pixelated;
+background:#0b1220;
+border:1px solid var(--line);
+border-radius:8px;
+image-rendering:pixelated;
 }
-.tetris-help { color: var(--muted); font-size: 13px; margin-top: 10px; }
-/* --- Background image (site-wide) --- */
-/* Put your image at assets/bg.jpg, or change the path below */
-html, body { min-height: 100%; }
+.tetris-help { color:var(--muted); font-size:13px; margin-top:10px; }
+
+/* --- Background image (site-wide) --- /
+/ Put your image at assets/bg.jpg, or change the path below */
+html, body { min-height:100%; }
 body {
-background-color: #000;
+background-color:#000;
 background-image: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url('assets/bg.jpg?v=2');
-background-size: cover;
-background-position: center 35%;
-background-repeat: no-repeat;
-background-attachment: fixed;
+background-size:cover;
+background-position:center 35%;
+background-repeat:no-repeat;
+background-attachment:fixed;
 }
-/* --- Auth overlay --- */
+
+/* --- Auth overlay (glass, lifted) --- /
 .auth-overlay {
-position: fixed; inset: 0;
-background: rgba(0,0,0,0.40);
-display: flex; align-items: center; justify-content: center;
-backdrop-filter: blur(6px) saturate(0.85);
-z-index: 9999;
+position:fixed; inset:0;
+display:flex; align-items:center; justify-content:center;
+background:rgba(10,14,22,0.38); / 배경과 자연스럽게 이어짐 */
+backdrop-filter:blur(8px) saturate(0.9);
+-webkit-backdrop-filter:blur(8px) saturate(0.9);
+z-index:9999;
 }
+
 .auth-card {
-    width: 100%; max-width: 360px;
-    background: rgba(17,24,39,0.95);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 20px;
-    color: var(--text);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+width:100%; max-width:360px;
+background:rgba(17,24,39,0.55); /* 반투명 유리 느낌 */
+border:1px solid rgba(255,255,255,0.08);
+border-radius:16px;
+padding:24px 20px 20px;
+color:var(--text);
+box-shadow:
+0 22px 60px rgba(0,0,0,0.55),
+0 2px 10px rgba(0,0,0,0.35);
+backdrop-filter:blur(12px) saturate(1.1);
+-webkit-backdrop-filter:blur(12px) saturate(1.1);
+transform:translateY(-2px);
+transition:transform .25s ease, box-shadow .25s ease, background .25s ease;
+position:relative;
 }
-.auth-title { margin: 0 0 12px; font-size: 20px; text-align: center; }
-.auth-social { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
-.auth-sep { display:flex; align-items:center; gap:8px; color: var(--muted); font-size: 12px; margin: 8px 0; }
-.auth-sep::before, .auth-sep::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-.auth-form { display: flex; flex-direction: column; gap: 8px; }
-.auth-form input {
-    padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
-    background:#0b1220; color: var(--text);
+.auth-card::before{
+content:"";
+position:absolute; inset:0; border-radius:inherit;
+background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.06) 40%, transparent 75%);
+pointer-events:none; mix-blend-mode:screen; opacity:.7;
 }
-.btn { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; }
-.btn.primary { background: var(--brand); border-color: transparent; color: #07260f; font-weight: 600; }
-.btn.ghost { background: transparent; color: var(--text); }
-.btn.social.google { background: #1a1f25; }
-.btn.social.apple { background: #0f141a; }
-.link { background: none; color: #93c5fd; border: 0; cursor: pointer; padding: 0 4px; }
-.auth-switch { text-align: center; margin: 8px 0; color: var(--muted); }
-.auth-error { margin-top: 8px; color: #fca5a5; min-height: 18px; font-size: 13px; }
-.hidden { display: none !important; }
+.auth-card:hover,
+.auth-card:focus-within{
+transform:translateY(-6px);
+box-shadow:
+0 34px 80px rgba(0,0,0,0.6),
+0 6px 18px rgba(0,0,0,0.35);
+}
+
+.auth-title { margin:0 0 12px; font-size:20px; text-align:center; }
+.auth-social { display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+.auth-sep { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:12px; margin:8px 0; }
+.auth-sep::before, .auth-sep::after { content:""; flex:1; height:1px; background:var(--line); }
+
+.auth-form { display:flex; flex-direction:column; gap:8px; }
+.auth-form input{
+height:40px; padding:10px 12px 10px 14px;
+border-radius:10px;
+border:1px solid rgba(255,255,255,0.08);
+background:rgba(11,18,32,0.55);
+color:var(--text);
+transition:border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.auth-form input::placeholder{ color:#a1a1aa; }
+.auth-form input:focus{
+outline:none;
+border-color:rgba(255,255,255,0.28);
+background:rgba(11,18,32,0.7);
+box-shadow:0 0 0 3px rgba(34,197,94,0.25); /* brand */
+}
+
+.btn { padding:10px 12px; border-radius:8px; border:1px solid var(--line); cursor:pointer; }
+.btn.primary { background:var(--brand); border-color:transparent; color:#07260f; font-weight:600; }
+.btn.ghost { background:transparent; color:var(--text); }
+.btn.social.google { background:#1a1f25; }
+.btn.social.apple { background:#0f141a; }
+.link { background:none; color:#93c5fd; border:0; cursor:pointer; padding:0 4px; }
+.auth-switch { text-align:center; margin:8px 0; color:var(--muted); }
+.auth-error { margin-top:8px; color:#fca5a5; min-height:18px; font-size:13px; }
+
+.hidden { display:none !important; }
+
 /* 상태별로 테트리스 표시 */
-body.auth-locked #tetris-section { display: none !important; }
-body.auth-logged-in #tetris-section { display: block !important; }
-/* 로그인 카드(이미지 느낌) */
-.auth-overlay { backdrop-filter: blur(2px); }
-.auth-card { position: relative; padding-top: 56px; box-shadow: 0 18px 40px rgba(0,0,0,0.45); }
-.auth-avatar {
-width: 74px; height: 74px; border-radius: 50%;
-position: absolute; left: 50%; transform: translateX(-50%); top: -37px;
-background: rgba(255,255,255,0.07); border: 1px solid var(--line);
-box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+body.auth-locked #tetris-section { display:none !important; }
+body.auth-logged-in #tetris-section { display:block !important; }
+
+/* 로그인 카드 상단 원형 아바타 */
+.auth-avatar{
+width:74px; height:74px; border-radius:50%;
+position:absolute; left:50%; transform:translateX(-50%); top:-37px;
+background:rgba(255,255,255,0.07); border:1px solid var(--line);
+box-shadow:0 10px 24px rgba(0,0,0,0.35);
 }
-.auth-form input { padding-left: 14px; height: 40px; }
-.auth-row { display:flex; justify-content:space-between; align-items:center; gap:8px; color: var(--muted); font-size:12px; }
-.auth-remember { display:flex; align-items:center; gap:6px; }
+
+/* 보조 행/체크박스 라벨 */
+.auth-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; color:var(--muted); font-size:12px; }
+.auth-remember{ display:flex; align-items:center; gap:6px; }
