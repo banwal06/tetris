@@ -1,25 +1,16 @@
-<!doctype html> <html lang="ko"> <head> <meta charset="utf-8" /> <meta name="viewport" content="width=device-width, initial-scale=1" /> <title>To‑Do App</title> <link rel="stylesheet" href="styles.css" /> </head> <body> <main class="container"> <header class="header"><h1>할 일 목록</h1></header>
-    <section class="composer">
-        <form id="new-task-form" autocomplete="off">
-            input id="new-task-input" type="text" placeholder="할 일을 입력하세요" required />
-            <button type="submit" class="primary">추가</button>
-            </form>
-    </section>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TETRIS</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <!-- 여기에 웹 페이지의 내용이 들어갑니다 -->
+    <h1>안녕하세요!</h1>
+    <p>이것은 index.html 파일의 기본 구조입니다.</p>
 
-    <section class="toolbar">
-        <div class="filters">
-            <button class="filter active" data-filter="all">전체</button>
-            <button class="filter" data-filter="active">진행중</button>
-            <button class="filter" data-filter="completed">완료</button>
-                </div>
-                <div class="stats" aria-live="polite"></div>
-    </section>
-
-    <ul id="task-list" class="task-list"></ul>
-
-    <footer class="footer">
-        <button id="clear-completed" class="danger" type="button">완료 비우기</button>
-    </footer>
-</main>
-<script src="app.js" defer></script>
-</body> </html>
+    <script src="index.js"></script>
+</body>
+</html>
