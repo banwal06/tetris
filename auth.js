@@ -46,9 +46,12 @@
     }
 
     function syncOverlay() {
-        const session = getSession();
-        overlay.style.display = session ? "none" : "flex";
-    }
+    const session = getSession();
+    const loggedIn = !!session;
+    if (overlay) overlay.style.display = loggedIn ? 'none' : 'flex';
+    const tetris = document.getElementById('tetris-section');
+    if (tetris) tetris.classList.toggle('hidden', !loggedIn);
+}
 
   // Email/Password
     frmLogin?.addEventListener("submit", async (e) => {
@@ -121,8 +124,8 @@
     });
 
   // Guest
-    btnGuest?.addEventListener("click", () => {
-        setSession({ uid: "guest_" + Date.now(), guest: true, name: "게스트", provider: "guest" });
+    btnGuest?.addEventListener('click', () => {
+        setSession({ uid: 'guest_' + Date.now(), guest: true, name: '게스트', provider: 'guest' });
     });
 
   // 초기 표시
@@ -130,4 +133,4 @@
 
   // 로그아웃 헬퍼 (원하면 메뉴에 연결하세요)
     window.appSignOut = () => setSession(null);
-})();
+    })();

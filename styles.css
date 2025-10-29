@@ -77,4 +77,18 @@ body {
 .auth-switch { text-align: center; margin: 8px 0; color: var(--muted); }
 .auth-error { margin-top: 8px; color: #fca5a5; min-height: 18px; font-size: 13px; }
 .hidden { display: none !important; }
-
+/* 상태별로 테트리스 표시 */
+body.auth-locked #tetris-section { display: none !important; }
+body.auth-logged-in #tetris-section { display: block !important; }
+/* 로그인 카드(이미지 느낌) */
+.auth-overlay { backdrop-filter: blur(2px); }
+.auth-card { position: relative; padding-top: 56px; box-shadow: 0 18px 40px rgba(0,0,0,0.45); }
+.auth-avatar {
+width: 74px; height: 74px; border-radius: 50%;
+position: absolute; left: 50%; transform: translateX(-50%); top: -37px;
+background: rgba(255,255,255,0.07); border: 1px solid var(--line);
+box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+}
+.auth-form input { padding-left: 14px; height: 40px; }
+.auth-row { display:flex; justify-content:space-between; align-items:center; gap:8px; color: var(--muted); font-size:12px; }
+.auth-remember { display:flex; align-items:center; gap:6px; }
