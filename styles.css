@@ -43,15 +43,31 @@ background-attachment:fixed;
 }
 
 .auth-overlay {
-position: fixed;
-top: 0; right: 0; bottom: 0; left: 0; / inset:0 대신 호환성 높은 방식 /
-width: 100vw; height: 100vh; / 일부 브라우저 안전망 /
-display: grid; / 가장 견고한 중앙 정렬 /
-place-items: center; / 수직+수평 중앙 */
-background: rgba(10,14,22,0.38);
--webkit-backdrop-filter: blur(8px) saturate(0.9);
-backdrop-filter: blur(8px) saturate(0.9);
+position: fixed; inset: 0;
+display: flex; 
+align-items: stretch;
+justify-content: flex-start;
+background: rgba(0,0,0,0.15);
+-webkit-backdrop-filter: blur(4px) saturate(0.9);
+backdrop-filter: blur(4px) saturate(0.9);
 z-index: 9999;
+}
+
+.auth-card {
+width: clamp(320px, 36vw, 440px); 
+height: 100vh; 
+margin: 0;
+padding: 28px 22px 22px;
+background: rgba(17,24,39,0.60); 
+border: 1px solid rgba(255,255,255,0.08);
+border-left: none;
+border-radius: 0 16px 16px 0; 
+color: var(--text);
+box-shadow: 12px 0 40px rgba(0,0,0,0.35);
+backdrop-filter: blur(12px) saturate(1.1);
+-webkit-backdrop-filter: blur(12px) saturate(1.1);
+overflow-y: auto; 
+position: relative;
 }
 
 .auth-card {
