@@ -35,20 +35,20 @@ button{padding:10px 14px;border:1px solid var(--line);border-radius:8px;backgrou
 /* Put your image at assets/bg.jpg, or change the path below */
 html, body { min-height: 100%; }
 body {
-    background-color: #000; /* fallback while image loads */
-    background-image: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('assets/site-bg.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+background-color: #000;
+background-image: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url('assets/bg.jpg?v=2');
+background-size: cover;
+background-position: center 35%;
+background-repeat: no-repeat;
+background-attachment: fixed;
 }
 /* --- Auth overlay --- */
 .auth-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.40);
-    display: flex; align-items: center; justify-content: center;
-    backdrop-filter: blur(6px) saturate(0.85);
-    z-index: 9999;
+position: fixed; inset: 0;
+background: rgba(0,0,0,0.40);
+display: flex; align-items: center; justify-content: center;
+backdrop-filter: blur(6px) saturate(0.85);
+z-index: 9999;
 }
 .auth-card {
     width: 100%; max-width: 360px;
