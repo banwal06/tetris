@@ -42,16 +42,6 @@ background-repeat:no-repeat;
 background-attachment:fixed;
 }
 
-/* --- Auth overlay (glass, lifted) --- /
-.auth-overlay {
-position:fixed; inset:0;
-display:flex; align-items:center; justify-content:center;
-background:rgba(10,14,22,0.38); / 배경과 자연스럽게 이어짐 */
-backdrop-filter:blur(8px) saturate(0.9);
--webkit-backdrop-filter:blur(8px) saturate(0.9);
-z-index:9999;
-}
-
 .auth-card {
 width:100%; max-width:360px;
 background:rgba(17,24,39,0.55); /* 반투명 유리 느낌 */
