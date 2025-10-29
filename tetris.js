@@ -1,29 +1,3 @@
-<!-- Tetris Game Section -->
-<section class="container" id="tetris-section" aria-label="Tetris Game">
-    <header class="header"><h2>테트리스</h2></header>
-
-    <div class="tetris-ui">
-        <div class="tetris-stats">
-            <div>점수: <span id="t-score">0</span></div>
-            <div>줄: <span id="t-lines">0</span></div>
-            <div>레벨: <span id="t-level">1</span></div>
-    </div>
-        <div class="tetris-controls">
-            <button id="t-start" class="primary" type="button">시작/일시정지</button>
-            <button id="t-reset" type="button">리셋</button>
-        </div>
-    </div>
-
-    <div class="tetris-stage">
-        <canvas id="tetris" width="240" height="480" aria-label="Tetris Board"></canvas>
-    </div>
-
-    <p class="tetris-help">조작: ← → 이동, ↑ 회전, ↓ 빠르게 내리기, Space 하드드롭</p>
-
-    <script src="tetris.js" defer></script>
-    <noscript>게임을 하려면 자바스크립트를 활성화하세요.</noscript>
-</section>
-
 (() => {
   "use strict";
 
