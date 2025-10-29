@@ -31,3 +31,50 @@ button{padding:10px 14px;border:1px solid var(--line);border-radius:8px;backgrou
     image-rendering: pixelated;
 }
 .tetris-help { color: var(--muted); font-size: 13px; margin-top: 10px; }
+/* --- Background image (site-wide) --- */
+/* Put your image at assets/bg.jpg, or change the path below */
+html, body { min-height: 100%; }
+body {
+    background-color: #000; /* fallback while image loads */
+    background-image: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('assets/bg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+/* --- Auth overlay --- */
+.auth-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(2px);
+    z-index: 9999;
+}
+.auth-card {
+    width: 100%; max-width: 360px;
+    background: rgba(17,24,39,0.95);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+    color: var(--text);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+.auth-title { margin: 0 0 12px; font-size: 20px; text-align: center; }
+.auth-social { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.auth-sep { display:flex; align-items:center; gap:8px; color: var(--muted); font-size: 12px; margin: 8px 0; }
+.auth-sep::before, .auth-sep::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.auth-form { display: flex; flex-direction: column; gap: 8px; }
+.auth-form input {
+    padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+    background:#0b1220; color: var(--text);
+}
+.btn { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; }
+.btn.primary { background: var(--brand); border-color: transparent; color: #07260f; font-weight: 600; }
+.btn.ghost { background: transparent; color: var(--text); }
+.btn.social.google { background: #1a1f25; }
+.btn.social.apple { background: #0f141a; }
+.link { background: none; color: #93c5fd; border: 0; cursor: pointer; padding: 0 4px; }
+.auth-switch { text-align: center; margin: 8px 0; color: var(--muted); }
+.auth-error { margin-top: 8px; color: #fca5a5; min-height: 18px; font-size: 13px; }
+.hidden { display: none !important; }
+

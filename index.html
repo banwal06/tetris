@@ -13,6 +13,46 @@
 
     <script src="index.js"></script>
 </body>
+<!-- Auth Overlay -->
+<div id="auth-overlay" class="auth-overlay" aria-modal="true" role="dialog">
+    <div class="auth-card">
+        <h2 class="auth-title">로그인</h2>
+
+    <div class="auth-social">
+        <button id="auth-google" class="btn social google" type="button">Google로 계속</button>
+        <button id="auth-apple" class="btn social apple" type="button">Apple로 계속</button>
+    </div>
+
+    <div class="auth-sep"><span>또는</span></div>
+
+    <form id="auth-login" class="auth-form" autocomplete="on">
+        <input type="email" id="login-email" placeholder="이메일" required />
+        <input type="password" id="login-pass" placeholder="비밀번호" required />
+        <button type="submit" class="btn primary">로그인</button>
+    </form>
+
+    <div class="auth-switch">
+        처음이신가요? <button id="go-signup" type="button" class="link">회원가입</button>
+    </div>
+
+    <form id="auth-signup" class="auth-form hidden" autocomplete="off">
+        <input type="text" id="signup-name" placeholder="이름(선택)" />
+        <input type="email" id="signup-email" placeholder="이메일" required />
+        <input type="password" id="signup-pass" placeholder="비밀번호(8자 이상)" minlength="8" required />
+        <button type="submit" class="btn primary">가입하기</button>
+    </form>
+
+    <div class="auth-switch hidden" id="switch-back">
+        이미 계정이 있나요? <button id="go-login" type="button" class="link">로그인</button>
+    </div>
+
+    <button id="auth-guest" class="btn ghost" type="button">게스트로 계속</button>
+    <p class="auth-hint">구글/애플 로그인은 지금은 데모입니다. 원하면 실제 연동해 드릴게요.</p>
+    <div id="auth-error" class="auth-error" aria-live="polite"></div>
+    </div>
+</div>
+
+<script src="auth.js" defer></script>
 <!-- Tetris Game Section -->
 <section class="container" id="tetris-section" aria-label="Tetris Game">
     <header class="header"><h2>테트리스</h2></header>
