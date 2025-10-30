@@ -11,8 +11,8 @@ import {
 import { firebaseConfig } from "./firebase-config.js";
 
 // Cloudinary 설정
-const CLOUDINARY_CLOUD_NAME = "dkl4wukal"; // 예: mycloud
-const CLOUDINARY_UPLOAD_PRESET = "profile image";   // 프리셋 이름(Unsigned)
+const CLOUDINARY_CLOUD_NAME = "dkl4wukal"; // 본인 cloud name
+const CLOUDINARY_UPLOAD_PRESET = "profile image";   // Unsigned preset 이름
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
 const app = initializeApp(firebaseConfig);
@@ -21,6 +21,73 @@ const auth = getAuth(app);
 // UI 템플릿
 document.body.innerHTML = `
 <main class="app-root">
+
+  <style>
+    /* 이름 변경 모달 */
+    .overlay {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 1000;
+    }
+    .overlay[hidden] { display: none !important; }
+    body.modal-open { overflow: hidden; }
+
+    .modal {
+      width: min(92vw, 420px);
+      border-radius: 16px;
+      padding: 20px;
+      color: #fff;
+      background: linear-gradient(180deg, rgba(20,28,42,0.85), rgba(20,28,42,0.68));
+      border: 1px solid rgba(255,255,255,0.22);
+      backdrop-filter: blur(16px) saturate(120%);
+      -webkit-backdrop-filter: blur(16px) saturate(120%);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+    .modal-title { margin: 0 0 6px; font-size: 20px; font-weight: 700; }
+    .modal-desc { margin: 0 0 12px; opacity: .9; }
+
+    .modal-input {
+      width: min(9000px, 90%); 
+      height: 44px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.35);
+      background: rgba(0,0,0,0.25);
+      color: #fff;
+      outline: none;
+    }
+
+    .modal-actions {
+      display: flex; gap: 10px; justify-content: flex-end;
+      margin-top: 16px;
+    }
+
+    .btn-primary, .btn-secondary {
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.28);
+      box-shadow: 0 12px 28px rgba(0,0,0,.45);
+      transition: background .2s ease, box-shadow .2s ease, transform .05s ease;
+      cursor: pointer; color: #fff;
+      backdrop-filter: blur(12px) saturate(140%);
+      -webkit-backdrop-filter: blur(12px) saturate(140%);
+    }
+    .btn-primary {
+      background: #20d07a; color: #0a1a12; font-weight: 700;
+      border-color: rgba(0,0,0,0.15);
+    }
+    .btn-primary:hover { filter: brightness(1.05); box-shadow: 0 16px 32px rgba(0,0,0,.5); }
+    .btn-primary:active, .btn-secondary:active { transform: translateY(1px); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.14);
+      border-color: rgba(255,255,255,0.28);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.22); }
+  </style>
+
   <section id="auth-view" aria-live="polite" class="content">
     <h2 id="panel-title" style="margin:0 0 12px;">로그인</h2>
     <form id="login-form">
@@ -76,6 +143,20 @@ document.body.innerHTML = `
   </header>
 
   <section id="content-area" class="content-area" hidden></section>
+
+  <!-- 이름 변경 모달 -->
+  <div id="name-modal-overlay" class="overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="name-modal-title">
+      <h3 id="name-modal-title" class="modal-title">이름 변경</h3>
+      <p class="modal-desc">표시할 이름을 입력하세요.</p>
+      <input id="name-input" type="text" class="modal-input" maxlength="40" />
+      <div class="modal-actions">
+        <button id="name-cancel" type="button" class="btn-secondary">취소</button>
+        <button id="name-save" type="button" class="btn-primary">완료</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 `;
 
@@ -107,6 +188,12 @@ const changeNameBtn = $("change-name");
 const changePhotoBtn = $("change-photo");
 const logoutBtn = $("logout-btn");
 const photoInput = $("photo-input");
+
+// 이름 변경 모달 엘리먼트
+const nameModalOverlay = $("name-modal-overlay");
+const nameInput = $("name-input");
+const nameSave = $("name-save");
+const nameCancel = $("name-cancel");
 
 // Helpers
 const show = (el) => (el && (el.hidden = false));
@@ -229,23 +316,67 @@ if (profileMenu) {
   profileMenu.addEventListener("click", (e) => e.stopPropagation());
 }
 document.addEventListener("click", () => closeMenu());
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    closeMenu();
+    // 모달이 열려 있으면 ESC로 닫기
+    if (nameModalOverlay && !nameModalOverlay.hidden) {
+      e.stopPropagation();
+      closeNameModal();
+    }
+  }
+});
 
-// 이름 변경
-changeNameBtn.addEventListener("click", async () => {
+// 이름 변경 모달 동작
+function openNameModal() {
   const user = auth.currentUser;
   if (!user) return;
   const current = fallbackName(user);
-  const name = prompt("새 이름을 입력하세요", current);
-  if (name && name.trim()) {
-    try {
-      await updateProfile(user, { displayName: name.trim() });
-      updateProfileUI(auth.currentUser);
-      closeMenu();
-    } catch (err) {
-      setMsg(err.message);
-    }
+  if (nameInput) {
+    nameInput.value = current;
+    try { nameInput.setSelectionRange(0, current.length); } catch {}
   }
+  if (nameModalOverlay) nameModalOverlay.hidden = false;
+  document.body.classList.add("modal-open");
+  setTimeout(() => nameInput && nameInput.focus(), 0);
+}
+function closeNameModal() {
+  if (nameModalOverlay) nameModalOverlay.hidden = true;
+  document.body.classList.remove("modal-open");
+}
+
+// 이름 변경: 모달 열기
+changeNameBtn.addEventListener("click", () => {
+  closeMenu();
+  openNameModal();
+});
+
+async function saveName() {
+  const user = auth.currentUser;
+  if (!user) return;
+  const name = (nameInput?.value || "").trim();
+  if (!name) { setMsg("이름을 입력하세요."); nameInput?.focus(); return; }
+  try {
+    setMsg("이름 변경 중...");
+    await updateProfile(user, { displayName: name });
+    await reload(user);
+    updateProfileUI(auth.currentUser);
+    closeNameModal();
+    setMsg("");
+  } catch (err) {
+    setMsg(err?.message || "이름 변경 중 오류가 발생했습니다.");
+  }
+}
+nameSave?.addEventListener("click", saveName);
+nameCancel?.addEventListener("click", closeNameModal);
+
+// 모달 바깥 클릭 시 닫기
+nameModalOverlay?.addEventListener("click", (e) => {
+  if (e.target === nameModalOverlay) closeNameModal();
+});
+// Enter로 저장
+nameInput?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); saveName(); }
 });
 
 // 이미지 리사이즈 → Blob
