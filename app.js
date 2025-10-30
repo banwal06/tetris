@@ -135,6 +135,34 @@ const logoutMenuBtn = document.getElementById("logout-menu-btn");
 const photoFile = document.getElementById("photo-file");
 const displayNameEl = document.getElementById("display-name");
 const avatarEl = document.getElementById("avatar");
+if (document.getElementById("profile-menu") && !document.getElementById("change-name-btn")) {
+const profileMenu = document.getElementById("profile-menu");
+const userChip = document.getElementById("user-chip");
+const btn = document.createElement("button");
+btn.id = "change-name-btn";
+btn.type = "button";
+btn.textContent = "이름 변경";
+profileMenu.prepend(btn);
+btn.addEventListener("click", async () => {
+const current =
+(auth.currentUser && (auth.currentUser.displayName || (auth.currentUser.email ? auth.currentUser.email.split("@")[0] : ""))) || "";
+const next = window.prompt("새 이름을 입력하세요", current);
+if (!next) return;
+try {
+if (auth.currentUser) {
+const { updateProfile } = await import("https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js");
+await updateProfile(auth.currentUser, { displayName: next });
+applyUserHeader(auth.currentUser);
+setMsg("이름이 변경되었습니다.");
+}
+} catch (err) {
+setMsg(err.message);
+} finally {
+profileMenu.hidden = true;
+userChip && userChip.setAttribute("aria-expanded", "false");
+}
+});
+}
 
 /* 아바타 플레이스홀더 (이니셜) */
 function avatarPlaceholder(name) {
@@ -297,11 +325,9 @@ userEmailEl.textContent = user.email || "";
 hide(authView);
 hide(userView);
 if (topbar) { topbar.hidden = false; applyUserHeader(user); }
-showHeaderFor(user);
 setMsg("");
 } else {
 show(authView);
-removeHeader();
 hide(userView);
 if (topbar) topbar.hidden = true;
 show(loginForm);
