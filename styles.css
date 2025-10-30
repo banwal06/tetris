@@ -1,150 +1,298 @@
-:root { --bg:#0f172a; --panel:#111827; --text:#e5e7eb; --muted:#9ca3af; --brand:#22c55e; --danger:#ef4444; --line:#1f2937; }
-*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto}
-.container{max-width:720px;margin:40px auto;padding:24px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
-h1{margin:0 0 16px;font-size:24px}
-.composer form{display:flex;gap:8px}
-input[type=text]{flex:1;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:#0b1220;color:var(--text)}
-button{padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:#0b1220;color:var(--text);cursor:pointer}
-.primary{background:var(--brand);border-color:transparent;color:#07260f;font-weight:600}
-.danger{background:#1b0c0c;border-color:#3b1111;color:#fca5a5}
-.toolbar{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px}
-.filters{display:flex;gap:6px} .filter.active{outline:2px solid var(--brand)}
-.task-list{list-style:none;padding:0;margin:0}
-.task{display:flex;align-items:center;gap:10px;padding:10px 8px;border-top:1px solid var(--line)}
-.task label{flex:1;display:flex;align-items:center;gap:10px}
-.task.completed .title{color:var(--muted);text-decoration:line-through}
-.title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.footer{margin-top:12px;display:flex;justify-content:flex-end}
-
-/* --- Tetris styles --- */
-#tetris-section { margin-top: 24px; }
-.tetris-ui { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; }
-.tetris-stats { display:flex; gap:14px; color:var(--text); }
-.tetris-controls { display:flex; gap:8px; }
-.tetris-stage { display:flex; justify-content:center; }
-#tetris {
-background:#0b1220;
-border:1px solid var(--line);
-border-radius:8px;
-image-rendering:pixelated;
-}
-.tetris-help { color:var(--muted); font-size:13px; margin-top:10px; }
-
-/* --- Background image (site-wide) --- /
-/ Put your image at assets/bg.jpg, or change the path below */
-html, body { min-height:100%; }
+styles.css:1
+html, body { height: 100%; }
 body {
-background-color:#000;
-background-image: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url('assets/bg.jpg?v=2');
-background-size:cover;
-background-position:center 35%;
-background-repeat:no-repeat;
-background-attachment:fixed;
+margin: 0;
+background: #101320 url('assets/background.jpg') no-repeat center center fixed;
+background-size: cover;
 }
 
-.auth-overlay {
-position: fixed; inset: 0;
-display: flex; 
-align-items: stretch;
+
+.content {
+min-height: 100vh;
+position: relative;
+display: flex;
+align-items: stretch; 
 justify-content: flex-start;
-background: rgba(0,0,0,0.15);
--webkit-backdrop-filter: blur(4px) saturate(0.9);
-backdrop-filter: blur(4px) saturate(0.9);
-z-index: 9999;
+color: #fff;
+text-shadow: 0 2px 8px rgba(0,0,0,.6);
+padding: 0; 
 }
 
-.auth-card {
-width: clamp(320px, 36vw, 440px); 
+/* 상단 제목(패널 내부 상단 좌측에 고정) */
+.content > h1 {
+position: absolute;
+top: 28px;
+left: 28px;
+margin: 0;
+font-size: 24px;
+letter-spacing: .5px;
+}
+
+
+#auth-view, #user-view {
+position: relative;
+width: clamp(360px, 36vw, 560px); 
 height: 100vh; 
 margin: 0;
-padding: 28px 22px 22px;
-background: rgba(17,24,39,0.60); 
-border: 1px solid rgba(255,255,255,0.08);
-border-left: none;
-border-radius: 0 16px 16px 0; 
-color: var(--text);
-box-shadow: 12px 0 40px rgba(0,0,0,0.35);
-backdrop-filter: blur(12px) saturate(1.1);
--webkit-backdrop-filter: blur(12px) saturate(1.1);
-overflow-y: auto; 
+padding: 96px 24px 24px; 
+border-radius: 0 20px 20px 0; 
+background: linear-gradient(180deg, rgba(20,28,42,0.50), rgba(20,28,42,0.32));
+border: 1px solid rgba(255,255,255,0.22);
+border-left: none; 
+backdrop-filter: blur(16px) saturate(120%);
+-webkit-backdrop-filter: blur(16px) saturate(120%);
+box-shadow: 0 10px 30px rgba(0,0,0,.28);
+overflow: hidden;
+}
+
+/* 패널 상단 은은한 하이라이트 */
+#auth-view::before, #user-view::before {
+content: "";
+position: absolute;
+inset: 0;
+border-radius: inherit;
+pointer-events: none;
+background: linear-gradient(180deg, rgba(255,255,255,0.18), transparent 120px);
+}
+
+/* 레이블은 시각적으로 숨기고, 접근성은 유지 */
+label {
+position: absolute !important;
+width: 1px; height: 1px;
+padding: 0; margin: -1px;
+overflow: hidden; clip: rect(0 0 0 0);
+white-space: nowrap; border: 0;
+}
+
+/* 입력칸(placeholder가 레이블 역할) */
+input[type="email"], input[type="password"] {
+width: 100%;
+padding: 12px 14px;
+border-radius: 10px;
+border: 1px solid rgba(255,255,255,0.35);
+background: rgba(0,0,0,0.25);
+color: #fff;
+outline: none;
+}
+input::placeholder {
+color: rgba(255,255,255,0.92);
+}
+
+/* 버튼 */
+button {
+padding: 12px 14px;
+border-radius: 10px;
+border: 1px solid rgba(255,255,255,0.35);
+background: rgba(255,255,255,0.18);
+color: #fff;
+cursor: pointer;
+transition: background .15s ease;
+}
+button:hover { background: rgba(255,255,255,0.26); }
+
+/* 제출 버튼 강조(초록) */
+#login-btn, #signup-btn {
+background: #20d07a;
+border: 1px solid rgba(0,0,0,0.15);
+color: #0a1a12;
+font-weight: 700;
+}
+#login-btn:hover, #signup-btn:hover { background: #1ac46f; }
+
+/* 안내 문구 간격 */
+#auth-view p, #user-view p { margin: 12px 0; }
+
+/* 좁은 화면(모바일)에서는 자연스럽게 전환 */
+@media (max-width: 640px) {
+#auth-view, #user-view {
+width: 100%;
+border-radius: 0;
+}
+}
+
+.content {
+min-height: 100vh;
 position: relative;
+display: flex;
+align-items: stretch;
+justify-content: flex-start;
+padding: 0; 
+gap: 1rem;
 }
 
-.auth-card {
-width:100%; max-width:360px;
-background:rgba(17,24,39,0.55); /* 반투명 유리 느낌 */
-border:1px solid rgba(255,255,255,0.08);
-border-radius:16px;
-padding:24px 20px 20px;
-color:var(--text);
-box-shadow:
-0 22px 60px rgba(0,0,0,0.55),
-0 2px 10px rgba(0,0,0,0.35);
-backdrop-filter:blur(12px) saturate(1.1);
--webkit-backdrop-filter:blur(12px) saturate(1.1);
-transform:translateY(-2px);
-transition:transform .25s ease, box-shadow .25s ease, background .25s ease;
-position:relative;
-}
-.auth-card::before{
-content:"";
-position:absolute; inset:0; border-radius:inherit;
-background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.06) 40%, transparent 75%);
-pointer-events:none; mix-blend-mode:screen; opacity:.7;
-}
-.auth-card:hover,
-.auth-card:focus-within{
-transform:translateY(-6px);
-box-shadow:
-0 34px 80px rgba(0,0,0,0.6),
-0 6px 18px rgba(0,0,0,0.35);
+#auth-view, #user-view {
+width: clamp(300px, 28vw, 420px);
+height: 100vh;
+margin: 0;
+padding: 96px 24px 24px;
+border-radius: 0 20px 20px 0;
+border-left: none;
 }
 
-.auth-title { margin:0 0 12px; font-size:20px; text-align:center; }
-.auth-social { display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
-.auth-sep { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:12px; margin:8px 0; }
-.auth-sep::before, .auth-sep::after { content:""; flex:1; height:1px; background:var(--line); }
 
-.auth-form { display:flex; flex-direction:column; gap:8px; }
-.auth-form input{
-height:40px; padding:10px 12px 10px 14px;
-border-radius:10px;
-border:1px solid rgba(255,255,255,0.08);
-background:rgba(11,18,32,0.55);
-color:var(--text);
-transition:border-color .2s ease, background .2s ease, box-shadow .2s ease;
-}
-.auth-form input::placeholder{ color:#a1a1aa; }
-.auth-form input:focus{
-outline:none;
-border-color:rgba(255,255,255,0.28);
-background:rgba(11,18,32,0.7);
-box-shadow:0 0 0 3px rgba(34,197,94,0.25); /* brand */
+input[type="email"], input[type="password"] {
+padding: 8px 12px; 
 }
 
-.btn { padding:10px 12px; border-radius:8px; border:1px solid var(--line); cursor:pointer; }
-.btn.primary { background:var(--brand); border-color:transparent; color:#07260f; font-weight:600; }
-.btn.ghost { background:transparent; color:var(--text); }
-.btn.social.google { background:#1a1f25; }
-.btn.social.apple { background:#0f141a; }
-.link { background:none; color:#93c5fd; border:0; cursor:pointer; padding:0 4px; }
-.auth-switch { text-align:center; margin:8px 0; color:var(--muted); }
-.auth-error { margin-top:8px; color:#fca5a5; min-height:18px; font-size:13px; }
 
-.hidden { display:none !important; }
-
-/* 상태별로 테트리스 표시 */
-body.auth-locked #tetris-section { display:none !important; }
-body.auth-logged-in #tetris-section { display:block !important; }
-
-/* 로그인 카드 상단 원형 아바타 */
-.auth-avatar{
-width:74px; height:74px; border-radius:50%;
-position:absolute; left:50%; transform:translateX(-50%); top:-37px;
-background:rgba(255,255,255,0.07); border:1px solid var(--line);
-box-shadow:0 10px 24px rgba(0,0,0,0.35);
+#login-btn {
+width: 100%;
+padding: 14px 16px; 
 }
 
-/* 보조 행/체크박스 라벨 */
-.auth-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; color:var(--muted); font-size:12px; }
-.auth-remember{ display:flex; align-items:center; gap:6px; }
+/* size tweaks: inputs a bit narrower, login button slightly shorter */
+#login-form input[type="email"],
+#login-form input[type="password"] {
+width: 92%;
+}
+
+#login-btn {
+width: 92%;
+}
+
+/* 모바일에서는 다시 가득 */
+@media (max-width: 640px) {
+#login-form input[type="email"],
+#login-form input[type="password"],
+#login-btn { width: 100%; }
+}
+
+
+#auth-view,
+#user-view {
+display: grid; 
+align-content: center; 
+gap: 14px; 
+}
+
+/* inputs a touch narrower (이메일/비밀번호) */
+#login-form input[type="email"],
+#login-form input[type="password"],
+#signup-form input[type="email"],
+#signup-form input[type="password"] {
+width: 90%;
+}
+
+
+#login-btn {
+width: 90%;
+margin-top: 10px; 
+}
+
+#signup-btn { width: 90%; margin-top: 10px; }
+
+#auth-view, #user-view {
+display: grid;
+align-content: center; 
+gap: 14px;
+}
+
+#login-btn { margin-top: 12px; }
+
+#auth-view[hidden],
+#user-view[hidden],
+#to-signup[hidden] {
+display: none !important;
+}
+
+/* 보일 때만 grid로 배치 */
+#auth-view:not([hidden]),
+#user-view:not([hidden]) {
+display: grid;
+align-content: center;
+gap: 14px;
+}
+
+/* hidden 속성 존중: 숨기면 완전히 감춤 */
+#auth-view[hidden],
+#user-view[hidden],
+#to-signup[hidden] { display: none !important; }
+
+/* 보일 때만 grid 배치로 중앙 정렬 */
+#auth-view:not([hidden]),
+#user-view:not([hidden]) {
+display: grid;
+align-content: center;
+gap: 14px;
+}
+
+/* 이동 요소를 버튼 대신 텍스트 링크처럼 */
+#go-signup,
+#go-login {
+background: none !important;
+border: 0 !important;
+padding: 0 !important;
+color: rgba(255,255,255,0.9);
+text-decoration: underline;
+font: inherit;
+cursor: pointer;
+}
+#go-signup:hover,
+#go-login:hover { color: #fff; text-decoration-color: #fff; }
+
+/* 주요 버튼을 유리 패널 위로 살짝 떠 보이게 */
+#login-btn,
+#signup-btn {
+display: block;
+width: 90%;
+border-radius: 12px;
+background: linear-gradient(180deg, #2be47f, #21c66f);
+color: #0a1a12;
+border: 0;
+box-shadow: 0 10px 24px rgba(0,0,0,.35),
+0 0 0 1px rgba(255,255,255,0.18) inset;
+backdrop-filter: blur(6px) saturate(140%);
+-webkit-backdrop-filter: blur(6px) saturate(140%);
+}
+#login-btn:hover,
+#signup-btn:hover {
+box-shadow: 0 14px 30px rgba(0,0,0,.4),
+0 0 0 1px rgba(255,255,255,0.22) inset;
+filter: brightness(1.02);
+}
+#login-btn:active,
+#signup-btn:active { transform: translateY(1px); }
+
+/* 비밀번호 아래 여백으로 로그인 버튼 살짝 내리기 */
+#login-btn { margin-top: 12px; }
+
+#login-btn,
+#signup-btn {
+width: 90%;
+margin-top: 12px; 
+padding: 12px 16px;
+border-radius: 12px;
+border: 1px solid rgba(255,255,255,0.35);
+background: rgba(255,255,255,0.16); 
+color: #ffffff; 
+box-shadow: 0 10px 24px rgba(0,0,0,.35);
+backdrop-filter: blur(12px) saturate(140%); 
+-webkit-backdrop-filter: blur(12px) saturate(140%);
+cursor: pointer;
+transition: background .2s ease, box-shadow .2s ease, transform .05s ease;
+}
+#login-btn:hover,
+#signup-btn:hover {
+background: rgba(255,255,255,0.22);
+box-shadow: 0 14px 30px rgba(0,0,0,.40);
+}
+#login-btn:active,
+#signup-btn:active {
+transform: translateY(1px);
+}
+
+
+#login-form input[type="email"],
+#login-form input[type="password"],
+#signup-form input[type="email"],
+#signup-form input[type="password"] {
+padding: 12px 14px; 
+height: 44px; 
+font-size: 16px;
+}
+
+/* 두 입력칸 사이 간격 조금 추가 */
+#login-form > div + div,
+#signup-form > div + div {
+margin-top: 10px;
+}
