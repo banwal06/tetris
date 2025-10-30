@@ -297,78 +297,79 @@ font-size: 16px;
 margin-top: 10px;
 }
 
-#simple-header {
-position: fixed; top: 12px; left: 12px;
-z-index: 1000;
+/* 상단 바 레이아웃 */
+.topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: linear-gradient(180deg, rgba(20,28,42,0.60), rgba(20,28,42,0.28));
+  border-bottom: 1px solid rgba(255,255,255,0.22);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  z-index: 10;
+  color: #fff;
 }
-.sh-chip {
-display: flex; align-items: center; gap: 10px;
-padding: 8px 12px;
-border-radius: 12px;
-border: 1px solid rgba(255,255,255,0.28);
-background: rgba(20,28,42,0.50);
-backdrop-filter: blur(12px) saturate(140%);
--webkit-backdrop-filter: blur(12px) saturate(140%);
-color: #fff;
-box-shadow: 0 8px 20px rgba(0,0,0,.25);
-}
-.sh-avatar {
-width: 32px; height: 32px; border-radius: 50%;
-object-fit: cover; background: rgba(0,0,0,.3);
-border: 1px solid rgba(255,255,255,.35);
-}
-.sh-name { font-weight: 600; }
-.sh-logout {
-margin-left: 6px; padding: 6px 10px;
-border-radius: 10px; border: 1px solid rgba(255,255,255,.28);
-background: rgba(255,255,255,.16); color: #fff; cursor: pointer;
-}
-.sh-logout:hover { background: rgba(255,255,255,.22); }
+.brand { font-weight: 700; letter-spacing: .5px; }
+.grow { flex: 1; }
 
-#user-view { display: none !important; }
-
-/* 상단 프로필 헤더(topbar) 스타일 */
-#topbar {
-position: fixed; top: 0; left: 0; right: 0;
-height: 64px; padding: 10px 16px;
-background: linear-gradient(180deg, rgba(20,28,42,0.55), rgba(20,28,42,0.28));
-border-bottom: 1px solid rgba(255,255,255,0.22);
-backdrop-filter: blur(16px) saturate(120%);
--webkit-backdrop-filter: blur(16px) saturate(120%);
-z-index: 1000;
+.profile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
 }
-.topbar-inner { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
-.user-chip { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.28); background: rgba(0,0,0,0.18); }
-.user-chip:hover { background: rgba(255,255,255,0.22); }
-.user-name { color: #fff; font-weight: 600; text-shadow: 0 2px 8px rgba(0,0,0,.6); }
-.avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.35); }
-.profile-menu { position: absolute; top: 58px; right: 16px; display: grid; gap: 8px; padding: 10px; min-width: 200px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.22); background: linear-gradient(180deg, rgba(20,28,42,0.60), rgba(20,28,42,0.36)); box-shadow: 0 10px 30px rgba(0,0,0,.28); backdrop-filter: blur(12px) saturate(140%); -webkit-backdrop-filter: blur(12px) saturate(140%); z-index: 1001; }
-.profile-menu button { width: 100%; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.28); background: rgba(255,255,255,0.16); color: #fff; }
-.profile-menu button:hover { background: rgba(255,255,255,0.24); }
-
-#topbar {
-position: fixed; top: 0; left: 0; right: 0;
-height: 64px; padding: 10px 16px;
-background: linear-gradient(180deg, rgba(20,28,42,0.55), rgba(20,28,42,0.28));
-border-bottom: 1px solid rgba(255,255,255,0.22);
-backdrop-filter: blur(16px) saturate(120%);
--webkit-backdrop-filter: blur(16px) saturate(120%);
-z-index: 1000;
+.avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.28);
 }
-.topbar-inner { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
-.user-chip { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.28); background: rgba(0,0,0,0.18); cursor: pointer; }
-.user-chip:hover { background: rgba(255,255,255,0.22); }
-.user-name { color: #fff; font-weight: 600; text-shadow: 0 2px 8px rgba(0,0,0,.6); }
-.avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.35); }
+.profile-name { font-weight: 600; }
+.profile-toggle {
+  background: none; border: none; color: inherit; cursor: pointer;
+  font-size: 16px; padding: 0 2px;
+}
+
 .profile-menu {
-position: absolute; top: 58px; right: 16px;
-display: grid; gap: 8px; padding: 10px; min-width: 200px;
-border-radius: 12px; border: 1px solid rgba(255,255,255,0.22);
-background: linear-gradient(180deg, rgba(20,28,42,0.60), rgba(20,28,42,0.36));
-box-shadow: 0 10px 30px rgba(0,0,0,.28);
-backdrop-filter: blur(12px) saturate(140%);
--webkit-backdrop-filter: blur(12px) saturate(140%);
-z-index: 1001;
+  position: absolute;
+  right: 0; top: 100%;
+  margin-top: 8px;
+  min-width: 180px;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(20,28,42,0.90);
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: 0 10px 24px rgba(0,0,0,.35);
 }
-.profile-menu button { width: 100%; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.28); background: rgba(255,255,255,0.16); color: #fff; }
-.profile-menu button:hover { background: rgba(255,255,255,0.24); }
+.profile-menu button {
+  text-align: left;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+.profile-menu button:hover {
+  background: rgba(255,255,255,0.16);
+}
+
+.content-area { padding-top: 64px; } /* 상단바 아래 여백 */
+
+/* hidden 속성 존중: 상단바/콘텐츠 강제 숨김 */
+.topbar[hidden],
+.content-area[hidden] {
+  display: none !important;
+}
+
+/* (선택) 인증 전 상태에서 상단바 숨김 */
+body.auth .topbar {
+  display: none !important;
+}
+
+
