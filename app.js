@@ -204,7 +204,17 @@ const setMsg = (text) => (msg.textContent = text || "");
 const SETTINGS_KEY = "tetris-settings-v1";
 const defaultSettings = {
   audio: { volume: 0.8, muted: false },
-  controls: {}
+  controls: {
+    moveLeft: "ArrowLeft",
+    moveRight: "ArrowRight",
+    hold: "KeyC",
+    softDrop: "ArrowDown",
+    hardDrop: "Space",
+    rotateCW: "KeyX",
+    rotateCCW: "KeyZ",
+    rotate180: "KeyA",
+    openChat: "Enter",
+  }
 };
 
 function loadSettings() {
@@ -228,6 +238,87 @@ function saveSettings(s) {
 }
 
 let settings = loadSettings();
+
+/* ===== 전역 입력 매핑(조작 키) ===== */
+const CONTROL_ACTIONS = [
+  "moveLeft", "moveRight", "hold", "softDrop", "hardDrop",
+  "rotateCW", "rotateCCW", "rotate180", "openChat",
+];
+
+const CONTROL_LABELS = {
+  moveLeft: "좌 이동",
+  moveRight: "우 이동",
+  hold: "홀드",
+  softDrop: "빠르게 내리기",
+  hardDrop: "하드 드롭",
+  rotateCW: "시계방향 회전",
+  rotateCCW: "시계 반대 회전",
+  rotate180: "180도 회전",
+  openChat: "채팅 열기",
+};
+
+function codeToLabel(code) {
+  if (!code) return "미지정";
+  if (code.startsWith("Key")) return code.slice(3);
+  if (code.startsWith("Digit")) return code.slice(5);
+  const map = { Space: "Space", Enter: "Enter", Tab: "Tab", Escape: "Esc" };
+  return map[code] || code;
+}
+
+let controlMap = {}; // e.code -> action
+const actionListeners = new Map(); // action -> Set(callback)
+function rebuildControlMap() {
+  controlMap = {};
+  const c = settings.controls || {};
+  for (const a of CONTROL_ACTIONS) {
+    const code = c[a];
+    if (code) controlMap[code] = a;
+  }
+}
+function emitAction(action, ev) {
+  const set = actionListeners.get(action);
+  if (!set) return;
+  for (const cb of set) { try { cb(ev); } catch {} }
+}
+function onAction(action, cb) {
+  if (!CONTROL_ACTIONS.includes(action)) return () => {};
+  let set = actionListeners.get(action);
+  if (!set) { set = new Set(); actionListeners.set(action, set); }
+  set.add(cb);
+  return () => { set.delete(cb); };
+}
+
+// 입력 포커스가 폼 요소일 때는 전역 조작 무시
+function isTypingContext() {
+  const ae = document.activeElement;
+  if (!ae) return false;
+  const tag = (ae.tagName || "").toLowerCase();
+  const editable = ae.isContentEditable;
+  return editable || tag === "input" || tag === "textarea" || tag === "select";
+}
+
+// 전역 keydown -> action
+window.addEventListener("keydown", (e) => {
+  if (window.__rebindingInProgress) return;
+  if (isTypingContext()) return;
+  const action = controlMap[e.code];
+  if (!action) return;
+  if (["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.code)) {
+    e.preventDefault();
+  }
+  emitAction(action, e);
+  const testOut = document.getElementById("controls-test-output");
+  if (testOut) testOut.textContent = `${CONTROL_LABELS[action]} (${codeToLabel(e.code)})`;
+});
+
+// 외부에서 사용: 게임 로직에서 구독 가능
+window.tetrisInput = {
+  on: onAction,
+  off: (a, cb) => { const set = actionListeners.get(a); if (set) set.delete(cb); },
+  getBindings: () => ({ ...settings.controls })
+};
+
+rebuildControlMap();
 
 /* ===== 오디오 컨텍스트/볼륨 적용 ===== */
 let audioCtx = null;
@@ -267,7 +358,7 @@ async function playTestBeep() {
   osc.stop(audioCtx.currentTime + 0.26);
 }
 
-/* ===== 홈 메뉴 (좌측 중앙 배치) ===== */
+/* ===== 홈 메뉴 ===== */
 function renderHomeMenu() {
   if (!contentArea) return;
   contentArea.innerHTML = `
@@ -303,35 +394,144 @@ function renderHomeMenu() {
     </div>
   `;
 
-  const status = document.getElementById("menu-status");
-  const setStatus = (t) => { if (status) status.textContent = t || ""; };
-
   const single = document.getElementById("menu-single");
   const multi = document.getElementById("menu-multi");
   const settingsLink = document.getElementById("menu-settings");
 
   single?.addEventListener("click", (e) => {
     e.preventDefault();
-    setStatus("싱글 플레이를 시작합니다 (준비중)");
-    console.log("[TETRIS] Start Single Player");
+    renderPlayScreen("single");
   });
   multi?.addEventListener("click", (e) => {
     e.preventDefault();
-    setStatus("멀티 플레이를 준비합니다 (준비중)");
-    console.log("[TETRIS] Start Multiplayer");
+    renderPlayScreen("multi");
   });
   settingsLink?.addEventListener("click", (e) => {
     e.preventDefault();
-    openSettings("audio");
+    openSettings("controls");
+  });
+}
+
+/* ===== 플레이 화면(싱글/멀티 공용) ===== */
+function renderPlayScreen(mode = "single") {
+  if (!contentArea) return;
+  const title = mode === "multi" ? "멀티 플레이" : "싱글 플레이";
+  contentArea.innerHTML = `
+    <style>
+      .stage-wrap {
+        min-height: calc(100vh - 64px);
+        display: flex; align-items: center; justify-content: center;
+      }
+      .stage {
+        position: relative;
+        width: min(96vw, 1100px);
+        height: min(88vh, 720px);
+      }
+      .top-ui {
+        position: absolute; top: -44px; left: 0; right: 0;
+        display: flex; align-items: center; justify-content: space-between;
+        color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.6);
+      }
+      .back-btn {
+        background: rgba(255,255,255,0.14);
+        border: 2px solid rgba(0,0,0,0.9);
+        color: #fff; border-radius: 10px;
+        padding: 8px 10px; cursor: pointer;
+        box-shadow: 0 8px 16px rgba(0,0,0,.35);
+      }
+      .title { font-weight: 800; letter-spacing: .5px; }
+
+      /* 공용 상자(홀드/넥스트) */
+      .box {
+        position: absolute;
+        background: rgba(16,19,32,0.35);
+        border: 3px solid rgba(0,0,0,0.95);
+        box-shadow: 0 0 0 2px rgba(255,255,255,0.06) inset, 0 8px 24px rgba(0,0,0,.35);
+        backdrop-filter: blur(6px) saturate(140%);
+        -webkit-backdrop-filter: blur(6px) saturate(140%);
+      }
+      .box.left  { left: 0;  top: 6%; width: min(20vw, 180px); height: 25%; }
+      .box.right { right: 0; top: 6%; width: min(18vw, 200px); height: 76%; }
+
+      .label {
+        position: absolute; top: 10px; left: 12px;
+        color: #fff; font-weight: 800; letter-spacing: .5px;
+        text-shadow: 0 2px 8px rgba(0,0,0,.55);
+      }
+
+      /* 중앙은 PLAYFIELD 박스 없이, 그리드만 */
+      .play-grid {
+        position: absolute;
+        left: 50%; transform: translateX(-50%);
+        top: 0; bottom: 0;
+        width: min(54vw, 420px);
+        display: flex; align-items: center; justify-content: center;
+        padding: 12px;
+        background: transparent; /* 박스 제거 */
+      }
+     .field {
+  height: 100%;
+  aspect-ratio: 10 / 20;
+
+  /* 유리 느낌 핵심 */
+  background-color: rgba(20,28,42,0.50);         /* 반투명 어두운 유리 톤 */
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+
+  /* 윤곽선/광택 (HOLD/NEXT 상자와 어울리게) */
+  border: 3px solid rgba(0,0,0,0.95);
+  box-shadow:
+    0 10px 24px rgba(0,0,0,.35),
+    inset 0 0 0 2px rgba(255,255,255,0.08);
+  border-radius: 10px;
+  overflow: hidden;
+
+  /* 10×20 그리드 라인 (조금 더 선명) */
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
+  background-size: calc(100%/10) calc(100%/20);
+}
+
+
+
+      @media (max-width: 860px) {
+        .box.left, .box.right { display:none; }
+        .play-grid { width: min(86vw, 520px); }
+      }
+    </style>
+
+    <div class="stage-wrap">
+      <div class="stage">
+        <div class="top-ui">
+          <button id="play-back" class="back-btn" type="button">← 메뉴</button>
+          <div class="title">${title}</div>
+          <div style="width:66px"></div>
+        </div>
+
+        <div class="box left"><div class="label">HOLD</div></div>
+
+        <!-- 중앙: 그리드만 표시 -->
+        <div class="play-grid">
+          <div class="field" role="img" aria-label="10×20 grid"></div>
+        </div>
+
+        <div class="box right"><div class="label">NEXT</div></div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("play-back")?.addEventListener("click", () => {
+    renderHomeMenu();
   });
 }
 
 /* ===== 세팅 화면 (상단 중앙 제목, 아래 콘텐츠) ===== */
-function openSettings(initialTab = "audio") {
+function openSettings(initialTab = "controls") {
   renderSettings(initialTab);
 }
 
-function renderSettings(initialTab = "audio") {
+function renderSettings(initialTab = "controls") {
   if (!contentArea) return;
   contentArea.innerHTML = `
     <style>
@@ -415,7 +615,26 @@ function renderSettings(initialTab = "audio") {
         </div>
 
         <div id="panel-controls" class="panel" role="tabpanel" hidden>
-          <p class="desc">조작 키 설정은 다음 단계에서 구현할 예정입니다.</p>
+          <style>
+            .bind-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+            .bind-name { width: 160px; }
+            .bind-key { min-width: 80px; font-weight:700; }
+            .bind-actions { display:flex; gap:6px; }
+            .hint { opacity:.9; }
+            .warn { color: #ffeb3b; }
+            .err { color: #ff6b6b; }
+            .ok { color: #c8ffdd; }
+          </style>
+          <div id="controls-bindings"></div>
+          <div class="actions" style="margin-top:10px;">
+            <button id="controls-reset" type="button" class="tab-btn">기본값으로 초기화</button>
+          </div>
+          <p class="desc hint">변경하려는 항목의 "변경"을 누르고 원하는 키를 누르세요. ESC로 취소.</p>
+          <p id="controls-msg" class="desc" aria-live="polite"></p>
+          <div style="margin-top:12px;">
+            <strong>테스트:</strong> 아래 영역에서 설정한 키를 눌러 동작을 확인하세요.
+            <div id="controls-test-output" class="desc" style="margin-top:6px;">대기중…</div>
+          </div>
         </div>
       </section>
     </div>
@@ -437,7 +656,7 @@ function renderSettings(initialTab = "audio") {
     tabControls.setAttribute("aria-selected", audioSelected ? "false" : "true");
     panelAudio.hidden = !audioSelected;
     panelControls.hidden = audioSelected;
-    if (audioSelected) initAudioPanel();
+    if (audioSelected) initAudioPanel(); else initControlsPanel();
   }
 
   tabAudio.addEventListener("click", () => selectTab("audio"));
@@ -469,6 +688,102 @@ function renderSettings(initialTab = "audio") {
     volInput.addEventListener("input", update);
     mutedInput.addEventListener("change", update);
     testBtn.addEventListener("click", async () => { await playTestBeep(); });
+  }
+
+  function initControlsPanel() {
+    const container = document.getElementById("controls-bindings");
+    const msgEl = document.getElementById("controls-msg");
+    const resetBtn = document.getElementById("controls-reset");
+    if (!container) return;
+
+    function setMsg(t, cls = "") {
+      if (!msgEl) return;
+      msgEl.className = `desc ${cls}`.trim();
+      msgEl.textContent = t || "";
+    }
+
+    function render() {
+      const c = settings.controls || {};
+      container.innerHTML = CONTROL_ACTIONS.map((a) => {
+        return `
+          <div class="bind-row" data-action="${a}">
+            <div class="bind-name">${CONTROL_LABELS[a]}</div>
+            <div class="bind-key" id="bind-${a}">${codeToLabel(c[a])}</div>
+            <div class="bind-actions">
+              <button type="button" class="tab-btn bind-change" data-action="${a}">변경</button>
+              <button type="button" class="tab-btn bind-clear" data-action="${a}">지우기</button>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    function isCodeInUse(code, exceptAction = null) {
+      for (const a of CONTROL_ACTIONS) {
+        if (a === exceptAction) continue;
+        if (settings.controls[a] === code) return a;
+      }
+      return null;
+    }
+
+    function updateBinding(action, code) {
+      if (code) {
+        const conflict = isCodeInUse(code, action);
+        if (conflict) {
+          setMsg(`이미 사용 중인 키입니다: ${CONTROL_LABELS[conflict]} ↔ ${CONTROL_LABELS[action]}`, "err");
+          return false;
+        }
+      }
+      settings.controls[action] = code || "";
+      saveSettings(settings);
+      rebuildControlMap();
+      const labelEl = document.getElementById(`bind-${action}`);
+      if (labelEl) labelEl.textContent = codeToLabel(code);
+      setMsg("저장됨", "ok");
+      return true;
+    }
+
+    function beginRebind(action) {
+      window.__rebindingInProgress = true;
+      setMsg(`${CONTROL_LABELS[action]} — 설정할 키를 누르세요 (ESC 취소)`, "warn");
+      const onKey = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.code === "Escape") {
+          cleanup(); setMsg("취소됨"); return;
+        }
+        const code = e.code;
+        if (updateBinding(action, code)) {
+          cleanup();
+        }
+      };
+      const cleanup = () => {
+        window.removeEventListener("keydown", onKey, true);
+        window.__rebindingInProgress = false;
+      };
+      window.addEventListener("keydown", onKey, true);
+    }
+
+    render();
+
+    container.addEventListener("click", (e) => {
+      const t = e.target;
+      if (!(t instanceof HTMLElement)) return;
+      if (t.classList.contains("bind-change")) {
+        const a = t.getAttribute("data-action");
+        if (a) beginRebind(a);
+      } else if (t.classList.contains("bind-clear")) {
+        const a = t.getAttribute("data-action");
+        if (a) updateBinding(a, "");
+      }
+    });
+
+    resetBtn?.addEventListener("click", () => {
+      settings.controls = { ...defaultSettings.controls };
+      saveSettings(settings);
+      rebuildControlMap();
+      render();
+      setMsg("기본값으로 초기화됨", "ok");
+    });
   }
 }
 
