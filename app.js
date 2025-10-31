@@ -200,19 +200,84 @@ const show = (el) => (el && (el.hidden = false));
 const hide = (el) => (el && (el.hidden = true));
 const setMsg = (text) => (msg.textContent = text || "");
 
+/* ===== 설정 상태 저장/로드 ===== */
+const SETTINGS_KEY = "tetris-settings-v1";
+const defaultSettings = {
+  audio: { volume: 0.8, muted: false },
+  controls: {}
+};
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { ...defaultSettings };
+    const parsed = JSON.parse(raw);
+    return {
+      audio: { ...defaultSettings.audio, ...(parsed.audio || {}) },
+      controls: { ...defaultSettings.controls, ...(parsed.controls || {}) },
+    };
+  } catch {
+    return { ...defaultSettings };
+  }
+}
+
+function saveSettings(s) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch {}
+}
+
+let settings = loadSettings();
+
+/* ===== 오디오 컨텍스트/볼륨 적용 ===== */
+let audioCtx = null;
+let masterGain = null;
+
+async function ensureAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === "suspended") {
+    try { await audioCtx.resume(); } catch {}
+  }
+}
+
+function applyAudioSettings() {
+  if (!masterGain) return;
+  const vol = settings.audio.muted ? 0 : Math.max(0, Math.min(1, settings.audio.volume));
+  masterGain.gain.value = vol;
+}
+
+/* 테스트 사운드 */
+async function playTestBeep() {
+  await ensureAudioContext();
+  applyAudioSettings();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = "sine";
+  osc.frequency.value = 440;
+  gain.gain.value = 0;
+  gain.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+  osc.connect(gain);
+  gain.connect(masterGain);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.26);
+}
+
+/* ===== 홈 메뉴 (좌측 중앙 배치) ===== */
 function renderHomeMenu() {
   if (!contentArea) return;
   contentArea.innerHTML = `
     <style>
-      /* 좌측 중앙 배치 */
       .menu-wrap {
-        min-height: calc(100vh - 64px); /* 상단바 높이 보정 */
+        min-height: calc(100vh - 64px);
         display: flex;
-        align-items: center;   /* 세로 중앙 */
+        align-items: center;
       }
-      .game-menu { margin-left: 28px; } /* 좌측 여백 */
-
-      /* 메뉴 링크 스타일(글자 크기/간격 확장, 불릿 제거) */
+      .game-menu { margin-left: 28px; }
       .menu-list { display: flex; flex-direction: column; gap: 18px; margin: 0; padding: 0; }
       .menu-link {
         display: inline-block;
@@ -223,7 +288,6 @@ function renderHomeMenu() {
         cursor: pointer;
       }
       .menu-link:hover { color: #20d07a; text-decoration: underline; }
-
       .menu-status { margin-top: 12px; opacity: .9; }
     </style>
 
@@ -244,7 +308,7 @@ function renderHomeMenu() {
 
   const single = document.getElementById("menu-single");
   const multi = document.getElementById("menu-multi");
-  const settings = document.getElementById("menu-settings");
+  const settingsLink = document.getElementById("menu-settings");
 
   single?.addEventListener("click", (e) => {
     e.preventDefault();
@@ -256,11 +320,156 @@ function renderHomeMenu() {
     setStatus("멀티 플레이를 준비합니다 (준비중)");
     console.log("[TETRIS] Start Multiplayer");
   });
-  settings?.addEventListener("click", (e) => {
+  settingsLink?.addEventListener("click", (e) => {
     e.preventDefault();
-    setStatus("세팅을 엽니다 (준비중)");
-    console.log("[TETRIS] Open Settings");
+    openSettings("audio");
   });
+}
+
+/* ===== 세팅 화면 (상단 중앙 제목, 아래 콘텐츠) ===== */
+function openSettings(initialTab = "audio") {
+  renderSettings(initialTab);
+}
+
+function renderSettings(initialTab = "audio") {
+  if (!contentArea) return;
+  contentArea.innerHTML = `
+    <style>
+      .settings-page { padding: 20px 16px 32px; }
+      .settings-title {
+        color: #8f62e2ff;
+        text-align: center;
+        margin: 8px 0 10px;
+        font-size: 24px;
+        font-weight: 800;
+      }
+      .settings-actions {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 12px;
+      }
+      .link-btn {
+        background: none; border: none; color: #fff; text-decoration: underline;
+        cursor: pointer; padding: 0; font: inherit;
+      }
+      .link-btn:hover { color: #6bc59aff; }
+
+      .settings-body {
+        width: min(92vw, 720px);
+        margin: 0 auto;
+      }
+
+      .tabs { display: flex; gap: 8px; margin-bottom: 12px; justify-content: center; }
+      .tab-btn {
+        padding: 8px 12px; border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.28);
+        background: rgba(255,255,255,0.10);
+        color: #fff; cursor: pointer;
+      }
+      .tab-btn[aria-selected="true"] {
+        background: rgba(253, 82, 196, 0.32);
+        border-color: rgba(248, 132, 248, 0.45);
+      }
+
+      .panel {
+        padding: 14px;
+        border: 1px solid rgba(219, 126, 255, 0.89);
+        border-radius: 10px;
+        background: rgba(234, 150, 255, 0.4);
+      }
+      .row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+      .row label { min-width: 60px; }
+      .grow { flex: 1; }
+      input[type="range"] { width: 100%; }
+      .desc { opacity: .9; }
+      .actions { display: flex; gap: 8px; justify-content: flex-end; }
+    </style>
+
+    <div class="settings-page" role="region" aria-label="세팅 페이지">
+      <h2 class="settings-title">세팅</h2>
+      <div class="settings-actions">
+        <button id="settings-back" class="link-btn" type="button">← 메인으로</button>
+      </div>
+      <section class="settings-body">
+        <div class="tabs" role="tablist">
+        <button id="tab-controls" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-controls">조작</button>
+        <button id="tab-audio" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-audio">오디오</button>
+        </div>
+
+        <div id="panel-audio" class="panel" role="tabpanel" hidden>
+          <div class="row">
+            <label for="audio-volume">볼륨</label>
+            <div class="grow">
+              <input id="audio-volume" type="range" min="0" max="100" step="1" />
+            </div>
+            <span id="audio-volume-label"></span>
+          </div>
+          <div class="row">
+            <label for="audio-muted">음소거</label>
+            <input id="audio-muted" type="checkbox" />
+            <span class="desc">음소거 시 모든 효과음이 꺼집니다</span>
+          </div>
+          <div class="actions">
+            <button id="audio-test" type="button" class="tab-btn">테스트 재생</button>
+          </div>
+        </div>
+
+        <div id="panel-controls" class="panel" role="tabpanel" hidden>
+          <p class="desc">조작 키 설정은 다음 단계에서 구현할 예정입니다.</p>
+        </div>
+      </section>
+    </div>
+  `;
+
+  const tabAudio = document.getElementById("tab-audio");
+  const tabControls = document.getElementById("tab-controls");
+  const panelAudio = document.getElementById("panel-audio");
+  const panelControls = document.getElementById("panel-controls");
+  const backBtn = document.getElementById("settings-back");
+
+  backBtn?.addEventListener("click", () => {
+    renderHomeMenu();  // 메인으로
+  });
+
+  function selectTab(which) {
+    const audioSelected = which === "audio";
+    tabAudio.setAttribute("aria-selected", audioSelected ? "true" : "false");
+    tabControls.setAttribute("aria-selected", audioSelected ? "false" : "true");
+    panelAudio.hidden = !audioSelected;
+    panelControls.hidden = audioSelected;
+    if (audioSelected) initAudioPanel();
+  }
+
+  tabAudio.addEventListener("click", () => selectTab("audio"));
+  tabControls.addEventListener("click", () => selectTab("controls"));
+
+  // 초기 탭 표시
+  selectTab(initialTab);
+
+  function initAudioPanel() {
+    const volInput = document.getElementById("audio-volume");
+    const volLabel = document.getElementById("audio-volume-label");
+    const mutedInput = document.getElementById("audio-muted");
+    const testBtn = document.getElementById("audio-test");
+
+    const currentVol = Math.round((settings.audio?.volume ?? 0.8) * 100);
+    volInput.value = String(currentVol);
+    volLabel.textContent = `${currentVol}%`;
+    mutedInput.checked = !!settings.audio?.muted;
+
+    const update = () => {
+      const vol = Math.max(0, Math.min(100, parseInt(volInput.value || "0", 10)));
+      const muted = !!mutedInput.checked;
+      settings.audio = { volume: vol / 100, muted };
+      saveSettings(settings);
+      ensureAudioContext().then(() => applyAudioSettings());
+      volLabel.textContent = `${vol}%`;
+    };
+
+    volInput.addEventListener("input", update);
+    mutedInput.addEventListener("change", update);
+    testBtn.addEventListener("click", async () => { await playTestBeep(); });
+  }
 }
 
 function fallbackName(user) {
