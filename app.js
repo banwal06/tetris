@@ -200,6 +200,69 @@ const show = (el) => (el && (el.hidden = false));
 const hide = (el) => (el && (el.hidden = true));
 const setMsg = (text) => (msg.textContent = text || "");
 
+function renderHomeMenu() {
+  if (!contentArea) return;
+  contentArea.innerHTML = `
+    <style>
+      /* 좌측 중앙 배치 */
+      .menu-wrap {
+        min-height: calc(100vh - 64px); /* 상단바 높이 보정 */
+        display: flex;
+        align-items: center;   /* 세로 중앙 */
+      }
+      .game-menu { margin-left: 28px; } /* 좌측 여백 */
+
+      /* 메뉴 링크 스타일(글자 크기/간격 확장, 불릿 제거) */
+      .menu-list { display: flex; flex-direction: column; gap: 18px; margin: 0; padding: 0; }
+      .menu-link {
+        display: inline-block;
+        font-size: 22px;
+        font-weight: 700;
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .menu-link:hover { color: #20d07a; text-decoration: underline; }
+
+      .menu-status { margin-top: 12px; opacity: .9; }
+    </style>
+
+    <div class="menu-wrap">
+      <div class="game-menu" role="navigation" aria-label="게임 메뉴">
+        <nav class="menu-list">
+          <a href="#" id="menu-single" class="menu-link">싱글 플레이</a>
+          <a href="#" id="menu-multi" class="menu-link">멀티 플레이</a>
+          <a href="#" id="menu-settings" class="menu-link">세팅</a>
+        </nav>
+        <p id="menu-status" class="menu-status" aria-live="polite"></p>
+      </div>
+    </div>
+  `;
+
+  const status = document.getElementById("menu-status");
+  const setStatus = (t) => { if (status) status.textContent = t || ""; };
+
+  const single = document.getElementById("menu-single");
+  const multi = document.getElementById("menu-multi");
+  const settings = document.getElementById("menu-settings");
+
+  single?.addEventListener("click", (e) => {
+    e.preventDefault();
+    setStatus("싱글 플레이를 시작합니다 (준비중)");
+    console.log("[TETRIS] Start Single Player");
+  });
+  multi?.addEventListener("click", (e) => {
+    e.preventDefault();
+    setStatus("멀티 플레이를 준비합니다 (준비중)");
+    console.log("[TETRIS] Start Multiplayer");
+  });
+  settings?.addEventListener("click", (e) => {
+    e.preventDefault();
+    setStatus("세팅을 엽니다 (준비중)");
+    console.log("[TETRIS] Open Settings");
+  });
+}
+
 function fallbackName(user) {
   if (!user) return "";
   if (user.displayName) return user.displayName;
@@ -458,6 +521,7 @@ onAuthStateChanged(auth, (user) => {
     hide(authView);
     show(topbar);
     show(contentArea);
+    renderHomeMenu();
     setMsg("");
   } else {
     show(authView);
