@@ -37,9 +37,7 @@ document.body.innerHTML = `
   <div>
     <input id="signup-email" type="email" autocomplete="email" placeholder="이메일" required />
   </div>
-  <div>
     <input id="signup-password" type="password" autocomplete="new-password" placeholder="비밀번호" required />
-  </div>
   <div>
     <button id="signup-btn" type="submit">회원가입</button>
   </div>
@@ -541,7 +539,7 @@ contentArea.innerHTML = `
     border: 1px solid rgba(255,255,255,0.32);
     color: #fff; font-weight: 800;
     cursor: pointer;
-    box-shadow: 0 8px 16px rgba(0,0,0,.25);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.25);
   }
   .copy-code-btn:hover { background: rgba(255,255,255,0.22); }
 
