@@ -372,6 +372,7 @@ body.auth .topbar {
   display: none !important;
 }
 
+
 /* 이름 변경 모달 */
 .overlay {
 position: fixed; inset: 0;

@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
 import {
   getAuth,
   onAuthStateChanged,
@@ -8,6 +8,11 @@ import {
   updateProfile,
   reload,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+import {
+  getFirestore,
+  doc, getDoc, setDoc, updateDoc, deleteDoc,
+  collection, onSnapshot, serverTimestamp, getDocs
+} from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 // Cloudinary 설정
@@ -17,6 +22,7 @@ const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOU
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 // UI 템플릿
 document.body.innerHTML = `
@@ -404,7 +410,7 @@ function renderHomeMenu() {
   });
   multi?.addEventListener("click", (e) => {
     e.preventDefault();
-    renderPlayScreen("multi");
+    renderMultiEntry(); // 진입 화면
   });
   settingsLink?.addEventListener("click", (e) => {
     e.preventDefault();
@@ -412,10 +418,14 @@ function renderHomeMenu() {
   });
 }
 
-/* ===== 플레이 화면(싱글/멀티 공용) ===== */
+/* ===== 플레이 화면(싱글 전용) ===== */
 function renderPlayScreen(mode = "single") {
   if (!contentArea) return;
-  const title = mode === "multi" ? "멀티 플레이" : "싱글 플레이";
+  if (mode !== "single") {
+    console.warn("[renderPlayScreen] Single-player only. Ignored mode:", mode);
+    return;
+  }
+  const title = "싱글 플레이";
   contentArea.innerHTML = `
     <style>
       .stage-wrap {
@@ -492,9 +502,6 @@ function renderPlayScreen(mode = "single") {
     linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
   background-size: calc(100%/10) calc(100%/20);
 }
-
-
-
       @media (max-width: 860px) {
         .box.left, .box.right { display:none; }
         .play-grid { width: min(86vw, 520px); }
@@ -524,6 +531,481 @@ function renderPlayScreen(mode = "single") {
   document.getElementById("play-back")?.addEventListener("click", () => {
     renderHomeMenu();
   });
+}
+
+/* ===== 멀티플레이 진입 화면 ===== */
+function renderMultiEntry() {
+  if (!contentArea) return;
+  contentArea.innerHTML = `
+    <style>
+      .multi-wrap { min-height: calc(100vh - 64px); display:flex; align-items:center; justify-content:center; }
+      .multi-card {
+        width: min(92vw, 520px);
+        border-radius: 16px;
+        padding: 20px;
+        color: #cf70ecff;
+
+        /* 유리(블러) 효과 제거 */
+        background: none;
+        border: 0;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+      .multi-title { margin: 0 0 8px; font-size: 22px; font-weight: 800; text-align:center; }
+      .multi-actions { display:flex; flex-direction:column; gap:12px; margin-top: 12px; }
+      .multi-btn {
+        padding: 14px 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.28);
+        box-shadow: 0 12px 28px rgba(0,0,0,.45);
+        transition: background .2s ease, box-shadow .2s ease, transform .05s ease;
+        cursor: pointer; color: #140a1aff;
+        background: linear-gradient(180deg, rgba(245, 79, 134, 0.18), #ea03ff60);
+        font-weight: 800;
+      }
+      .multi-btn:hover { filter: brightness(1.05); box-shadow: 0 16px 32px rgba(0,0,0,.5); }
+      .back-link { margin-top: 8px; text-align:center; }
+      .link-btn { background:none; border:0; color:#fff; text-decoration:underline; cursor:pointer; font:inherit; }
+      .link-btn:hover { color:#20d07a; }
+      .multi-status { margin-top: 8px; text-align:center; opacity:.9; }
+    </style>
+
+    <div class="multi-wrap">
+      <div class="multi-card" role="region" aria-label="멀티플레이어 메뉴">
+        <h2 class="multi-title">멀티 플레이</h2>
+        <div class="multi-actions">
+          <button id="btn-create-room" type="button" class="multi-btn">방 만들기</button>
+          <button id="btn-join-room" type="button" class="multi-btn">방 참가하기</button>
+        </div>
+        <p id="multi-status" class="multi-status" aria-live="polite"></p>
+        <div class="back-link">
+          <button id="multi-back" type="button" class="link-btn">메인 메뉴로</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const back = document.getElementById("multi-back");
+  const createBtn = document.getElementById("btn-create-room");
+  const joinBtn = document.getElementById("btn-join-room");
+  const statusEl = document.getElementById("multi-status");
+
+  back?.addEventListener("click", () => {
+    renderHomeMenu();
+  });
+
+  // 방 만들기 → 방 생성 화면으로
+  createBtn?.addEventListener("click", () => {
+    renderCreateRoom();
+  });
+
+  // 참가(추후 구현)
+  joinBtn?.addEventListener("click", () => {
+    renderJoinRoom();
+  });
+}
+
+/* 유니크 초대 코드 (6자리 대문자+숫자 일부) */
+function generateInviteCode(len = 6) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+}
+
+/* ===== 방 만들기 화면 ===== */
+function renderCreateRoom() {
+  const user = auth.currentUser;
+  if (!user) { setMsg("로그인이 필요합니다."); return; }
+
+  let roomRef = null;
+  let roomCode = "";
+  let unsubRoom = null;
+  let unsubPlayers = null;
+  const isHost = true; // 이 화면은 방장
+
+  contentArea.innerHTML = `
+    <style>
+      .room-wrap { min-height: calc(100vh - 64px); display:flex; align-items:center; justify-content:center; }
+      .room-panel { width: min(92vw, 560px); color:#fff; background:none; border:0; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
+
+      /* 제목 왼쪽에 메뉴 버튼, 버튼은 약간 더 좌측으로 */
+      .room-header {
+        display:flex; align-items:center; justify-content:center;
+        gap: 28px; /* 제목과 더 벌리기 */
+        margin-bottom: 10px;
+      }
+      .back-btn {
+        background: rgba(255,255,255,0.14);
+        border: 2px solid rgba(0,0,0,0.9);
+        color: #fff; border-radius: 10px;
+        padding: 8px 10px; cursor: pointer;
+        box-shadow: 0 8px 16px rgba(0,0,0,.35);
+        transform: translateX(-10px); /* 제목 기준 약간 더 왼쪽으로 */
+      }
+      .room-title { font-size:24px; font-weight:800; margin:0; }
+
+      .code-row { display:flex; align-items:center; justify-content:center; margin: 8px 0 12px; }
+
+      /* 텍스트만 보이고 클릭 시 복사 */
+      .copy-code-btn {
+        padding: 8px 14px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.14);
+        border: 1px solid rgba(255,255,255,0.32);
+        color: #fff; font-weight: 800;
+        cursor: pointer;
+        box-shadow: 0 8px 16px rgba(0,0,0,.25);
+      }
+      .copy-code-btn:hover { background: rgba(255,255,255,0.22); }
+
+      .players { margin: 14px 0 10px; padding:0; list-style:none; }
+      .players li {
+        padding:8px 10px; border:1px solid rgba(255,255,255,0.18);
+        border-radius:10px; background: rgba(0,0,0,0.25);
+        margin-bottom:8px; display:flex; align-items:center; gap:10px;
+      }
+      .players .me { border-color: rgba(43,228,127,0.7); }
+      .grow { flex:1; }
+
+      .actions { display:flex; gap:10px; justify-content:center; margin-top: 12px; }
+      .btn { padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.28); cursor: pointer; color: #0a1a12; font-weight: 800; }
+      .btn-primary { background: linear-gradient(180deg, #2be47f, #21c66f); }
+    </style>
+
+    <div class="room-wrap">
+      <div class="room-panel" role="region" aria-label="멀티 플레이">
+        <div class="room-header">
+          <button id="room-back" class="back-btn" type="button">메뉴</button>
+          <h2 class="room-title">멀티 플레이</h2>
+        </div>
+
+        <div class="code-row">
+          <button id="copy-invite" type="button" class="copy-code-btn" title="초대코드 복사">초대코드</button>
+        </div>
+
+        <h3 class="hint" style="text-align:center; opacity:.9; margin-top:10px;">대기실</h3>
+        <ul id="players" class="players"></ul>
+
+        <div class="actions">
+          <button id="room-start" type="button" class="btn btn-primary" disabled>시작</button>
+        </div>
+
+        <p id="room-status" class="hint" aria-live="polite" style="text-align:center;"></p>
+      </div>
+    </div>
+  `;
+
+  const copyBtn = document.getElementById("copy-invite");
+  const playersEl = document.getElementById("players");
+  const startBtn = document.getElementById("room-start");
+  const backBtn = document.getElementById("room-back");
+  const statusEl = document.getElementById("room-status");
+
+  // 방 생성 + 본인 등록 + 구독
+  (async function init() {
+    try {
+      const created = await createRoomInFirestore(user);
+      roomRef = created.ref;
+      roomCode = created.code;
+      startBtn.disabled = false; // 방장은 시작 가능
+      subscribeRoom();
+      subscribePlayers();
+    } catch (e) {
+      statusEl.textContent = e?.message || "방 생성에 실패했습니다.";
+    }
+  })();
+
+  // “초대코드” 버튼 클릭 → 초대 코드만 복사 (메시지 출력 안 함)
+  copyBtn.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(roomCode); } catch {}
+  });
+
+  // 시작(방장만)
+  startBtn.addEventListener("click", async () => {
+    if (!roomRef || !isHost) return;
+    try {
+      await updateDoc(roomRef, { status: "started", startedAt: serverTimestamp() });
+      // TODO: 실제 게임 화면 전환 연결 (예: renderPlayScreen("multi"))
+    } catch (e) {
+      statusEl.textContent = e?.message || "시작에 실패했습니다.";
+    }
+  });
+
+  // 메인 메뉴(나가기)
+  backBtn.addEventListener("click", async () => {
+    await leaveRoom();
+    renderMultiEntry();
+  });
+
+  function subscribeRoom() {
+    if (!roomRef) return;
+    unsubRoom = onSnapshot(roomRef, (snap) => {
+      const data = snap.data();
+      if (!data) return;
+      if (data.status === "started") {
+        // 게임 시작됨
+      } else if (data.status === "closed") {
+        statusEl.textContent = "방이 종료되었습니다.";
+      }
+    });
+  }
+
+  function subscribePlayers() {
+    if (!roomRef) return;
+    unsubPlayers = onSnapshot(collection(roomRef, "players"), (snap) => {
+      const list = [];
+      snap.forEach((doc) => list.push(doc.data()));
+      list.sort((a,b) => (b.isHost ? 1 : 0) - (a.isHost ? 1 : 0)); // 방장 먼저
+      playersEl.innerHTML = list.map(p => {
+        const host = p.isHost ? " (방장)" : "";
+        const name = p.name || "플레이어";
+        return `<li><span>${name}${host}</span><span class="grow"></span></li>`;
+      }).join("");
+    });
+  }
+
+  async function leaveRoom() {
+    try {
+      if (unsubRoom) unsubRoom();
+      if (unsubPlayers) unsubPlayers();
+      if (!roomRef) return;
+
+      // 방장: 대기 중이면 방과 플레이어 목록 정리
+      const playersSnap = await getDocs(collection(roomRef, "players"));
+      for (const docSnap of playersSnap.docs) {
+        await deleteDoc(docSnap.ref);
+      }
+      await deleteDoc(roomRef);
+    } catch (e) {
+      console.warn("[leaveRoom]", e);
+    }
+  }
+
+  async function createRoomInFirestore(user) {
+    const MAX_TRY = 5;
+    for (let i = 0; i < MAX_TRY; i++) {
+      const code = generateInviteCode(6);
+      const ref = doc(db, "rooms", code);
+      const exists = await getDoc(ref);
+      if (exists.exists()) continue;
+
+      await setDoc(ref, {
+        code,
+        hostUid: user.uid,
+        hostName: user.displayName || "플레이어",
+        createdAt: serverTimestamp(),
+        status: "waiting"
+      });
+
+      await setDoc(doc(ref, "players", user.uid), {
+        uid: user.uid,
+        name: user.displayName || "플레이어",
+        photoURL: user.photoURL || "",
+        isHost: true,
+        joinedAt: serverTimestamp()
+      });
+
+      return { ref, code };
+    }
+    throw new Error("초대 코드를 만들 수 없습니다. 잠시 후 다시 시도하세요.");
+  }
+}
+
+/* ===== 방 참가 화면 ===== */
+function renderJoinRoom() {
+  if (!contentArea) return;
+  const user = auth.currentUser;
+  if (!user) { setMsg("로그인이 필요합니다."); return; }
+
+  contentArea.innerHTML = `
+    <style>
+      .join-wrap { min-height: calc(100vh - 64px); display:flex; align-items:center; justify-content:center; }
+      .join-panel { width: min(92vw, 520px); color:#fff; background:none; border:0; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
+      .join-header { display:flex; align-items:center; justify-content:center; gap:28px; margin-bottom: 10px; }
+      .back-btn {
+        background: rgba(255,255,255,0.14);
+        border: 2px solid rgba(0,0,0,0.9);
+        color: #fff; border-radius: 10px;
+        padding: 8px 10px; cursor: pointer;
+        box-shadow: 0 8px 16px rgba(0,0,0,.35);
+        transform: translateX(-10px);
+      }
+      .join-title { font-size:24px; font-weight:800; margin:0; }
+      .row { display:flex; align-items:center; justify-content:center; gap:10px; }
+      .join-input {
+        width: 240px; height: 44px; padding: 10px 12px;
+        border-radius: 10px; border: 1px solid rgba(255,255,255,0.28);
+        background: rgba(0,0,0,0.25); color:#fff; outline:none; text-transform: uppercase;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 800; letter-spacing: .12em;
+      }
+      .join-btn {
+        padding: 12px 16px; border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.28); cursor:pointer; color:#0a1a12; font-weight:800;
+        background: linear-gradient(180deg, #2be47f, #21c66f);
+      }
+      .hint { text-align:center; opacity:.9; margin-top:10px; }
+    </style>
+
+    <div class="join-wrap">
+      <div class="join-panel" role="region" aria-label="멀티 플레이 - 방 참가">
+        <div class="join-header">
+          <button id="join-back" class="back-btn" type="button">메뉴</button>
+          <h2 class="join-title">멀티 플레이</h2>
+        </div>
+
+        <form id="join-form" class="row">
+          <input id="join-code" class="join-input" type="text" maxlength="8" placeholder="초대 코드" autocomplete="off" />
+          <button id="join-submit" class="join-btn" type="submit">참가</button>
+        </form>
+
+        <p id="join-status" class="hint" aria-live="polite"></p>
+      </div>
+    </div>
+  `;
+
+  const backBtn = document.getElementById("join-back");
+  const form = document.getElementById("join-form");
+  const codeInput = document.getElementById("join-code");
+  const statusEl = document.getElementById("join-status");
+
+  backBtn?.addEventListener("click", () => {
+    renderMultiEntry();
+  });
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const raw = (codeInput.value || "").trim().toUpperCase().replace(/\s+/g, "");
+    if (!raw) { statusEl.textContent = "초대 코드를 입력하세요."; codeInput.focus(); return; }
+    statusEl.textContent = "참가 중...";
+    try {
+      const { ref, code } = await joinRoomInFirestore(raw, user);
+      renderGuestLobby(ref, code); // 참가자 대기실로 이동
+    } catch (err) {
+      statusEl.textContent = err?.message || "참가에 실패했습니다. 코드를 확인하세요.";
+    }
+  });
+}
+
+/* Firestore: 방 참가(검증 후 플레이어 등록) */
+async function joinRoomInFirestore(code, user) {
+  const ref = doc(db, "rooms", code);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error("초대 코드를 찾을 수 없습니다.");
+  const data = snap.data() || {};
+  if (data.status && data.status !== "waiting") {
+    throw new Error("이미 시작되었거나 종료된 방입니다.");
+  }
+  // 내 플레이어 문서 등록(이미 있으면 병합)
+  await setDoc(doc(ref, "players", user.uid), {
+    uid: user.uid,
+    name: user.displayName || "플레이어",
+    photoURL: user.photoURL || "",
+    isHost: false,
+    joinedAt: serverTimestamp()
+  }, { merge: true });
+
+  return { ref, code };
+}
+
+/* ===== 참가자 대기실 ===== */
+function renderGuestLobby(roomRef, roomCode) {
+  if (!contentArea) return;
+  const user = auth.currentUser;
+  if (!user) { setMsg("로그인이 필요합니다."); return; }
+
+  let unsubRoom = null;
+  let unsubPlayers = null;
+
+  contentArea.innerHTML = `
+    <style>
+      .room-wrap { min-height: calc(100vh - 64px); display:flex; align-items:center; justify-content:center; }
+      .room-panel { width: min(92vw, 560px); color:#fff; background:none; border:0; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
+      .room-header { display:flex; align-items:center; justify-content:center; gap:28px; margin-bottom: 10px; }
+      .back-btn {
+        background: rgba(255,255,255,0.14);
+        border: 2px solid rgba(0,0,0,0.9);
+        color: #fff; border-radius: 10px;
+        padding: 8px 10px; cursor: pointer;
+        box-shadow: 0 8px 16px rgba(0,0,0,.35);
+        transform: translateX(-10px);
+      }
+      .room-title { font-size:24px; font-weight:800; margin:0; }
+      .hint { text-align:center; opacity:.9; }
+      .players { margin: 14px 0 10px; padding:0; list-style:none; }
+      .players li {
+        padding:8px 10px; border:1px solid rgba(255,255,255,0.18);
+        border-radius:10px; background: rgba(0,0,0,0.25);
+        margin-bottom:8px; display:flex; align-items:center; gap:10px;
+      }
+      .players .me { border-color: rgba(43,228,127,0.7); }
+      .grow { flex:1; }
+    </style>
+
+    <div class="room-wrap">
+      <div class="room-panel" role="region" aria-label="멀티 플레이 - 대기실(참가자)">
+        <div class="room-header">
+          <button id="guest-back" class="back-btn" type="button">메뉴</button>
+          <h2 class="room-title">멀티 플레이</h2>
+        </div>
+
+        <h3 class="hint" style="margin-top:4px;">대기실</h3>
+        <ul id="players" class="players"></ul>
+
+        <p id="room-status" class="hint" aria-live="polite"></p>
+      </div>
+    </div>
+  `;
+
+  const backBtn = document.getElementById("guest-back");
+  const playersEl = document.getElementById("players");
+  const statusEl = document.getElementById("room-status");
+
+  backBtn?.addEventListener("click", async () => {
+    await leaveRoomAsGuest();
+    renderMultiEntry();
+  });
+
+  function subscribeRoom() {
+    unsubRoom = onSnapshot(roomRef, (snap) => {
+      const data = snap.data();
+      if (!data) return;
+      if (data.status === "started") {
+        statusEl.textContent = "게임이 시작되었습니다!";
+        // TODO: 실제 멀티 게임 화면으로 전환
+      } else if (data.status === "closed") {
+        statusEl.textContent = "방이 종료되었습니다.";
+      }
+    });
+  }
+
+  function subscribePlayers() {
+    unsubPlayers = onSnapshot(collection(roomRef, "players"), (snap) => {
+      const list = [];
+      snap.forEach((doc) => list.push(doc.data()));
+      list.sort((a,b) => (b.isHost ? 1 : 0) - (a.isHost ? 1 : 0));
+      playersEl.innerHTML = list.map(p => {
+        const me = p.uid === user.uid ? " me" : "";
+        const host = p.isHost ? " (방장)" : "";
+        const name = p.name || "플레이어";
+        return `<li class="${me}"><span>${name}${host}</span><span class="grow"></span></li>`;
+      }).join("");
+    });
+  }
+
+  async function leaveRoomAsGuest() {
+    try {
+      if (unsubRoom) unsubRoom();
+      if (unsubPlayers) unsubPlayers();
+      await deleteDoc(doc(roomRef, "players", user.uid));
+    } catch (e) {
+      console.warn("[leaveRoomAsGuest]", e);
+    }
+  }
+
+  subscribeRoom();
+  subscribePlayers();
 }
 
 /* ===== 세팅 화면 (상단 중앙 제목, 아래 콘텐츠) ===== */
@@ -781,8 +1263,8 @@ function renderSettings(initialTab = "controls") {
       settings.controls = { ...defaultSettings.controls };
       saveSettings(settings);
       rebuildControlMap();
-      render();
       setMsg("기본값으로 초기화됨", "ok");
+      render();
     });
   }
 }
