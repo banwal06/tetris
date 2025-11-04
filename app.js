@@ -697,7 +697,7 @@ function renderGuestLobby(roomRef, roomCode) {
         const me = p.uid === user.uid ? " me" : "";
         const host = p.isHost ? " (방장)" : "";
         const name = p.name || "플레이어";
-        return `<li class="\${me}"><span>\${name}\${host}</span><span class="grow"></span></li>`;
+        return `<li><span>${name}${host}</span><span class="grow"></span></li>`;
       }).join("");
     });
   }
