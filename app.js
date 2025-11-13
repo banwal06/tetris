@@ -716,14 +716,12 @@ function renderGuestLobby(roomRef, roomCode) {
   subscribePlayers();
 }
 
-/* ===== 멀티 플레이 화면 ===== */
-/* 중앙: 본인 필드(그리드), 오른쪽: 본인 제외 플레이어 미니 보드 목록 */
-function renderMultiPlay(roomRef, roomCode) {
-  if (!contentArea) return;
-  const title = `멀티 플레이 · 방 ${roomCode || ''}`.trim();
-  const cells200 = new Array(200).fill('<div class="cell"></div>').join('');
-  contentArea.innerHTML = `
+// === 멀티 플레이 화면 (세트 반복 + 자동 축소) ===
+function renderMultiPlay(roomRef, roomCode){
+  if(!contentArea) return;
+  const title = `멀티 플레이 · 방 ${roomCode || ""}`.trim();
 
+  contentArea.innerHTML = `
     <div class="stage-wrap">
       <div class="stage">
         <div class="top-ui">
@@ -732,71 +730,78 @@ function renderMultiPlay(roomRef, roomCode) {
           <div style="width:66px"></div>
         </div>
 
-        <div class="box left"><div class="label">HOLD</div></div>
-
-        <div class="play-grid">
-          <div id="play-container" class="play-container single">
-            <div class="field me-field" role="img" aria-label="10×20 grid"></div>
+        <!-- 내 세트(크게) -->
+        <section class="left-sets">
+          <div class="tset my-set">
+            <div>
+              <div class="label">HOLD</div>
+              <div class="field hold" id="me-hold"></div>
+            </div>
+            <div>
+              <div class="field main" id="me-main" role="img" aria-label="10×20 grid"></div>
+            </div>
+            <div>
+              <div class="label">NEXT</div>
+              <div class="field next" id="me-next"></div>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div class="box right">
-          <div class="label">PLAYERS</div>
-          <div id="opponents" class="opponents" role="list"></div>
-        </div>
+        <!-- 상대 세트들(오른쪽, 인원 늘수록 자동 축소) -->
+        <section class="right-sets">
+          <div class="label" style="margin-bottom:8px;">PLAYERS</div>
+          <div id="opponent-grid" class="opponent-grid" role="list"></div>
+        </section>
       </div>
     </div>
   `;
 
   const me = auth.currentUser;
-  const opponentsEl = document.getElementById('opponents');
-  const stageEl = document.querySelector('.stage');
-  const playContainer = document.getElementById('play-container');
-  function esc(s){return String(s||'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
+  const grid = document.getElementById('opponent-grid');
 
-  // 플레이어 목록 구독 → 2인일 때 듀오(나란히) 레이아웃, 그 외는 기본(미니 리스트)
-  const unsubPlayers = onSnapshot(collection(roomRef, "players"), (snap) => {
-    const list = [];
-    snap.forEach((d)=> list.push(d.data()));
-    const others = list.filter(p => !me || p.uid !== me.uid);
+  // 플레이어 목록 → 오른쪽에 '세트' 반복 렌더
+  const unsubPlayers = onSnapshot(collection(roomRef,"players"), (snap)=>{
+    const list=[]; snap.forEach(d=>list.push(d.data()));
+    const others = list.filter(p=>!me || p.uid !== me.uid);
 
-    if (others.length === 1) {
-      // 듀오 모드: 중앙에 동일 크기 필드 2개를 나란히 표시, 우측 리스트 숨김
-      stageEl?.classList.add('duo-mode');
-      if (playContainer) {
-        playContainer.classList.remove('single');
-        playContainer.classList.add('duo');
-        const opp = others[0];
-        playContainer.innerHTML = `
-          <div class="field me-field" role="img" aria-label="10×20 grid"></div>
-          <div class="field opp-field" data-player="${opp.uid}" role="img" aria-label="10×20 grid"></div>
-        `;
-      }
-      if (opponentsEl) opponentsEl.innerHTML = '';
-    } else {
-      // 기본 모드: 중앙 단일 보드 + 우측 미니 보드 목록
-      stageEl?.classList.remove('duo-mode');
-      if (playContainer) {
-        playContainer.classList.remove('duo');
-        playContainer.classList.add('single');
-        playContainer.innerHTML = `<div class="field me-field" role="img" aria-label="10×20 grid"></div>`;
-      }
-      if (opponentsEl) {
-        opponentsEl.innerHTML = others.map(p => {
-          const name = esc(p.name || 'Player');
-          return `<div class="opp" data-uid="${p.uid}" role="listitem">
-            <div class="mini-field" data-player="${p.uid}">${cells200}</div>
-            <div class="opp-meta"><span class="opp-name">${name}</span></div>
-          </div>`;
-        }).join('');
-      }
-    }
+    grid.innerHTML = others.map(p=>{
+      const name = escapeHTML(p.name || 'Player');
+      const uid  = escapeHTML(p.uid || '');
+      return `
+        <article class="opp-card" role="listitem" data-uid="${uid}">
+          <div class="tset">
+            <div>
+              <div class="label">HOLD</div>
+              <div class="field hold" data-player="${uid}-hold"></div>
+            </div>
+            <div>
+              <div class="field main" data-player="${uid}-main" role="img" aria-label="10×20 grid"></div>
+            </div>
+            <div>
+              <div class="label">NEXT</div>
+              <div class="field next" data-player="${uid}-next"></div>
+            </div>
+          </div>
+          <div class="opp-meta">
+            <span class="opp-name">${name}</span>
+            <span>VS 0.00</span>
+          </div>
+        </article>
+      `;
+    }).join("");
   });
 
-  document.getElementById('play-back')?.addEventListener('click', () => {
-    try { unsubPlayers && unsubPlayers(); } catch {}
+  document.getElementById('play-back')?.addEventListener('click',()=>{
+    try{unsubPlayers && unsubPlayers();}catch{}
     renderHomeMenu();
   });
+}
+
+// HTML escape helper
+function escapeHTML(s){
+  return String(s||"").replace(/[&<>"']/g, c => (
+    {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]
+  ));
 }
 
 /* ===== 세팅 화면 (상단 중앙 제목, 아래 콘텐츠) ===== */
