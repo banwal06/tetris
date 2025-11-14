@@ -368,6 +368,42 @@ function renderPlayScreen(mode = "single") {
   });
 }
 
+/* ===== 멀티플레이 실제 게임 화면 ===== */
+function renderMultiPlay(roomRef, roomCode) {
+  if (!contentArea) return;
+  contentArea.innerHTML = `
+
+    <div class="stage-wrap">
+      <div class="stage">
+        <div class="top-ui">
+          <button id="multi-back" class="back-btn" type="button">← 메뉴</button>
+          <div class="title">멀티 플레이</div>
+          <div class="room-code">코드: <span>${roomCode}</span></div>
+        </div>
+
+        <div class="box left">
+          <div class="label">HOLD</div>
+        </div>
+
+        <div class="play-grid">
+          <div class="field" role="img" aria-label="10×20 grid"></div>
+        </div>
+
+        <div class="box right">
+          <div class="label">NEXT</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("multi-back")?.addEventListener("click", () => {
+    // TODO: 방 나가기 / 게임 종료 로직 필요하면 여기서 처리
+    renderHomeMenu();
+  });
+
+  // TODO: roomRef, roomCode 가지고 실제 멀티 게임 초기화 붙이면 됨
+}
+
 /* ===== 멀티플레이 진입 화면 ===== */
 function renderMultiEntry() {
   if (!contentArea) return;
@@ -396,12 +432,10 @@ function renderMultiEntry() {
     renderHomeMenu();
   });
 
-  // 방 만들기 → 방 생성 화면
   createBtn?.addEventListener("click", () => {
     renderCreateRoom();
   });
 
-  // 방 참가하기 → 참가 화면
   joinBtn?.addEventListener("click", () => {
     renderJoinRoom();
   });
@@ -415,7 +449,7 @@ function generateInviteCode(len = 6) {
   return out;
 }
 
-/* ===== 방 만들기 화면 ===== */
+/* ===== 방 만들기 화면 (방장) ===== */
 function renderCreateRoom() {
   const user = auth.currentUser;
   if (!user) { setMsg("로그인이 필요합니다."); return; }
@@ -457,13 +491,16 @@ function renderCreateRoom() {
   const backBtn = document.getElementById("room-back");
   const statusEl = document.getElementById("room-status");
 
+  // 확실히 비활성 상태로 시작
+  if (startBtn) startBtn.disabled = true;
+
   // 방 생성 + 본인 등록 + 구독
   (async function init() {
     try {
       const created = await createRoomInFirestore(user);
       roomRef = created.ref;
       roomCode = created.code;
-      startBtn.disabled = false; // 방장은 시작 가능
+      // 인원 수에 따른 시작 버튼 활성화는 subscribePlayers에서 처리
       subscribeRoom();
       subscribePlayers();
     } catch (e) {
@@ -471,12 +508,12 @@ function renderCreateRoom() {
     }
   })();
 
-  // “초대코드” 버튼 클릭 → 초대 코드만 복사 (메시지 출력 안 함)
+  // 초대 코드 복사
   copyBtn.addEventListener("click", async () => {
     try { await navigator.clipboard.writeText(roomCode); } catch {}
   });
 
-  // 시작(방장만)
+  // 시작 (방장만)
   startBtn.addEventListener("click", async () => {
     if (!roomRef || !isHost) return;
     try {
@@ -489,7 +526,7 @@ function renderCreateRoom() {
     }
   });
 
-  // 메인 메뉴(나가기)
+  // 메인 메뉴로 나가기
   backBtn.addEventListener("click", async () => {
     await leaveRoom();
     renderMultiEntry();
@@ -512,15 +549,35 @@ function renderCreateRoom() {
 
   function subscribePlayers() {
     if (!roomRef) return;
+
+    const MIN_PLAYERS = 2; // 시작 가능한 최소 인원
+
     unsubPlayers = onSnapshot(collection(roomRef, "players"), (snap) => {
       const list = [];
       snap.forEach((doc) => list.push(doc.data()));
-      list.sort((a,b) => (b.isHost ? 1 : 0) - (a.isHost ? 1 : 0)); // 방장 먼저
+      list.sort((a, b) => (b.isHost ? 1 : 0) - (a.isHost ? 1 : 0)); // 방장 먼저
+
       playersEl.innerHTML = list.map(p => {
         const host = p.isHost ? " (방장)" : "";
         const name = p.name || "플레이어";
         return `<li><span>${name}${host}</span><span class="grow"></span></li>`;
       }).join("");
+
+      const count = list.length;
+
+      // 인원 수에 따라 시작 버튼 활성/비활성
+      if (startBtn) {
+        startBtn.disabled = count < MIN_PLAYERS;
+      }
+
+      // 상태 메시지
+      if (statusEl) {
+        if (count < MIN_PLAYERS) {
+          statusEl.textContent = `시작하려면 최소 ${MIN_PLAYERS}명이 필요합니다. (현재 ${count}명)`;
+        } else {
+          statusEl.textContent = `시작 가능합니다. (현재 ${count}명)`;
+        }
+      }
     });
   }
 
@@ -714,94 +771,6 @@ function renderGuestLobby(roomRef, roomCode) {
 
   subscribeRoom();
   subscribePlayers();
-}
-
-// === 멀티 플레이 화면 (세트 반복 + 자동 축소) ===
-function renderMultiPlay(roomRef, roomCode){
-  if(!contentArea) return;
-  const title = `멀티 플레이 · 방 ${roomCode || ""}`.trim();
-
-  contentArea.innerHTML = `
-    <div class="stage-wrap">
-      <div class="stage">
-        <div class="top-ui">
-          <button id="play-back" class="back-btn" type="button">← 메뉴</button>
-          <div class="title">${title}</div>
-          <div style="width:66px"></div>
-        </div>
-
-        <!-- 내 세트(크게) -->
-        <section class="left-sets">
-          <div class="tset my-set">
-            <div>
-              <div class="label">HOLD</div>
-              <div class="field hold" id="me-hold"></div>
-            </div>
-            <div>
-              <div class="field main" id="me-main" role="img" aria-label="10×20 grid"></div>
-            </div>
-            <div>
-              <div class="label">NEXT</div>
-              <div class="field next" id="me-next"></div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 상대 세트들(오른쪽, 인원 늘수록 자동 축소) -->
-        <section class="right-sets">
-          <div class="label" style="margin-bottom:8px;">PLAYERS</div>
-          <div id="opponent-grid" class="opponent-grid" role="list"></div>
-        </section>
-      </div>
-    </div>
-  `;
-
-  const me = auth.currentUser;
-  const grid = document.getElementById('opponent-grid');
-
-  // 플레이어 목록 → 오른쪽에 '세트' 반복 렌더
-  const unsubPlayers = onSnapshot(collection(roomRef,"players"), (snap)=>{
-    const list=[]; snap.forEach(d=>list.push(d.data()));
-    const others = list.filter(p=>!me || p.uid !== me.uid);
-
-    grid.innerHTML = others.map(p=>{
-      const name = escapeHTML(p.name || 'Player');
-      const uid  = escapeHTML(p.uid || '');
-      return `
-        <article class="opp-card" role="listitem" data-uid="${uid}">
-          <div class="tset">
-            <div>
-              <div class="label">HOLD</div>
-              <div class="field hold" data-player="${uid}-hold"></div>
-            </div>
-            <div>
-              <div class="field main" data-player="${uid}-main" role="img" aria-label="10×20 grid"></div>
-            </div>
-            <div>
-              <div class="label">NEXT</div>
-              <div class="field next" data-player="${uid}-next"></div>
-            </div>
-          </div>
-          <div class="opp-meta">
-            <span class="opp-name">${name}</span>
-            <span>VS 0.00</span>
-          </div>
-        </article>
-      `;
-    }).join("");
-  });
-
-  document.getElementById('play-back')?.addEventListener('click',()=>{
-    try{unsubPlayers && unsubPlayers();}catch{}
-    renderHomeMenu();
-  });
-}
-
-// HTML escape helper
-function escapeHTML(s){
-  return String(s||"").replace(/[&<>"']/g, c => (
-    {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]
-  ));
 }
 
 /* ===== 세팅 화면 (상단 중앙 제목, 아래 콘텐츠) ===== */
