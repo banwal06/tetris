@@ -372,158 +372,301 @@ function renderPlayScreen(mode = "single") {
 function renderMultiPlay(roomRef, roomCode) {
   if (!contentArea) return;
   const user = auth.currentUser;
+  if (!roomRef) return;
 
-  // 기본 레이아웃: 왼쪽 내 세트 + 오른쪽 영역(동적으로 채움)
+  // 기본 레이아웃: 상단 나가기 버튼 + 왼쪽 내 세트 + 오른쪽 영역
   contentArea.innerHTML = `
     <div
       style="
         min-height: calc(100vh - 64px);
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 80px;
+        gap: 16px;
       "
     >
-      <!-- 왼쪽: 내 세트(고정) -->
+      <!-- 상단: 나가기 버튼 / 제목 -->
       <div
         style="
+          width: 100%;
+          max-width: 1200px;
           display: flex;
-          align-items: flex-start;
-          justify-content: center;
-          gap: 16px;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 16px;
+          margin-bottom: 8px;
+          color: #fff;
+          text-shadow: 0 2px 8px rgba(0,0,0,.6);
         "
       >
-        <!-- HOLD -->
-        <div
+        <button
+          id="multi-exit"
+          type="button"
           style="
-            width: 130px;
-            height: 220px;
-            background: rgba(16,19,32,0.35);
-            border: 3px solid rgba(0,0,0,0.95);
-            box-shadow:
-              0 0 0 2px rgba(255,255,255,0.06) inset,
-              0 8px 24px rgba(0,0,0,.35);
-            backdrop-filter: blur(6px) saturate(140%);
-            -webkit-backdrop-filter: blur(6px) saturate(140%);
-            position: relative;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 2px solid rgba(0,0,0,0.9);
+            background: rgba(255,255,255,0.14);
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 8px 16px rgba(0,0,0,.35);
           "
         >
-          <div
-            style="
-              position:absolute; top:10px; left:12px;
-              color:#fff; font-weight:800; letter-spacing:.5px;
-              text-shadow:0 2px 8px rgba(0,0,0,.55);
-            "
-          >
-            HOLD
-          </div>
-        </div>
-
-        <!-- 메인 필드 + 이름 -->
-        <div
-          style="
-            display:flex;
-            flex-direction:column;
-            align-items:center;
-            gap:8px;
-          "
-        >
-          <div
-            class="my-field"
-            data-uid=""
-            style="
-              width: 260px;
-              aspect-ratio: 10 / 20;
-              background-color: rgba(20,28,42,0.50);
-              backdrop-filter: blur(10px) saturate(140%);
-              -webkit-backdrop-filter: blur(10px) saturate(140%);
-              border: 3px solid rgba(0,0,0,0.95);
-              box-shadow:
-                0 10px 24px rgba(0,0,0,.35),
-                inset 0 0 0 2px rgba(255,255,255,0.08);
-              border-radius: 10px;
-              overflow: hidden;
-              background-image:
-                linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
-              background-size: calc(100%/10) calc(100%/20);
-            "
-          ></div>
-          <div
-            id="player-name-me"
-            style="
-              color:#fff;
-              font-weight:600;
-              text-shadow:0 2px 8px rgba(0,0,0,.6);
-            "
-          ></div>
-        </div>
-
-        <!-- NEXT -->
-        <div
-          style="
-            width: 130px;
-            height: calc(260px * 2);
-            background: rgba(16,19,32,0.35);
-            border: 3px solid rgba(0,0,0,0.95);
-            box-shadow:
-              0 0 0 2px rgba(255,255,255,0.06) inset,
-              0 8px 24px rgba(0,0,0,.35);
-            backdrop-filter: blur(6px) saturate(140%);
-            -webkit-backdrop-filter: blur(6px) saturate(140%);
-            position: relative;
-          "
-        >
-          <div
-            style="
-              position:absolute; top:10px; left:12px;
-              color:#fff; font-weight:800; letter-spacing:.5px;
-              text-shadow:0 2px 8px rgba(0,0,0,.55);
-            "
-          >
-            NEXT
-          </div>
-        </div>
+          ← 메뉴
+        </button>
+        <div style="font-weight: 800; letter-spacing: .5px;">멀티 플레이</div>
+        <div style="width:72px;"></div>
       </div>
 
-      <!-- 오른쪽: 상대들 영역 (동적 구성) -->
+      <!-- 메인 필드 영역 -->
       <div
-        id="right-side"
         style="
-          min-width: 320px;
-          max-width: 720px;
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           justify-content: center;
+          gap: 80px;
+          width: 100%;
         "
-      ></div>
+      >
+        <!-- 왼쪽: 내 세트(고정) -->
+        <div
+          style="
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 16px;
+          "
+        >
+          <!-- HOLD -->
+          <div
+            style="
+              width: 130px;
+              height: 220px;
+              background: rgba(16,19,32,0.35);
+              border: 3px solid rgba(0,0,0,0.95);
+              box-shadow:
+                0 0 0 2px rgba(255,255,255,0.06) inset,
+                0 8px 24px rgba(0,0,0,.35);
+              backdrop-filter: blur(6px) saturate(140%);
+              -webkit-backdrop-filter: blur(6px) saturate(140%);
+              position: relative;
+            "
+          >
+            <div
+              style="
+                position:absolute; top:10px; left:12px;
+                color:#fff; font-weight:800; letter-spacing:.5px;
+                text-shadow:0 2px 8px rgba(0,0,0,.55);
+              "
+            >
+              HOLD
+            </div>
+          </div>
+
+          <!-- 메인 필드 + 이름 -->
+          <div
+            style="
+              display:flex;
+              flex-direction:column;
+              align-items:center;
+              gap:8px;
+            "
+          >
+            <div
+              class="my-field"
+              data-uid=""
+              style="
+                width: 260px;
+                aspect-ratio: 10 / 20;
+                background-color: rgba(20,28,42,0.50);
+                backdrop-filter: blur(10px) saturate(140%);
+                -webkit-backdrop-filter: blur(10px) saturate(140%);
+                border: 3px solid rgba(0,0,0,0.95);
+                box-shadow:
+                  0 10px 24px rgba(0,0,0,.35),
+                  inset 0 0 0 2px rgba(255,255,255,0.08);
+                border-radius: 10px;
+                overflow: hidden;
+                background-image:
+                  linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
+                background-size: calc(100%/10) calc(100%/20);
+              "
+            ></div>
+            <div
+              id="player-name-me"
+              style="
+                color:#fff;
+                font-weight:600;
+                text-shadow:0 2px 8px rgba(0,0,0,.6);
+              "
+            ></div>
+          </div>
+
+          <!-- NEXT -->
+          <div
+            style="
+              width: 130px;
+              height: calc(260px * 2);
+              background: rgba(16,19,32,0.35);
+              border: 3px solid rgba(0,0,0,0.95);
+              box-shadow:
+                0 0 0 2px rgba(255,255,255,0.06) inset,
+                0 8px 24px rgba(0,0,0,.35);
+              backdrop-filter: blur(6px) saturate(140%);
+              -webkit-backdrop-filter: blur(6px) saturate(140%);
+              position: relative;
+            "
+          >
+            <div
+              style="
+                position:absolute; top:10px; left:12px;
+                color:#fff; font-weight:800; letter-spacing:.5px;
+                text-shadow:0 2px 8px rgba(0,0,0,.55);
+              "
+            >
+              NEXT
+            </div>
+          </div>
+        </div>
+
+        <!-- 오른쪽: 상대들 영역 (동적 구성) -->
+        <div
+          id="right-side"
+          style="
+            min-width: 320px;
+            max-width: 720px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+          "
+        ></div>
+      </div>
     </div>
   `;
 
   const meNameEl = document.getElementById("player-name-me");
   const myFieldEl = contentArea.querySelector(".my-field");
   const rightSide = document.getElementById("right-side");
+  const exitBtn = document.getElementById("multi-exit");
 
-  if (!roomRef) return;
+  // 🔹 킬 토스트 관련
+  const killToastEl = createKillToastElement();
+  let killToastTimer = null;
 
-  // players 스냅샷 구독 → 누가 나가도 즉시 반영
+  // 🔹 이전 스냅샷 상태 (죽음 감지용)
+  const prevState = new Map(); // uid -> { isAlive }
+
+  // 🔹 나가기 버튼: 내 player 문서 삭제 + 멀티 메뉴로 복귀
+  if (exitBtn) {
+    exitBtn.addEventListener("click", async () => {
+      try {
+        const u = auth.currentUser;
+        if (u && roomRef) {
+          await deleteDoc(doc(roomRef, "players", u.uid));
+        }
+      } catch (e) {
+        console.warn("[multi-exit] failed to delete player doc", e);
+      }
+      // 방 자체는 유지하고, 나는 멀티 메뉴로
+      renderMultiEntry();
+    });
+  }
+
+  // players 스냅샷 구독 → 누가 나가거나/죽어도 즉시 반영
   onSnapshot(collection(roomRef, "players"), (snap) => {
     const players = [];
     snap.forEach((docSnap) => players.push(docSnap.data()));
 
-    const myUid = user?.uid;
-    const me = players.find((p) => p.uid === myUid) || null;
-    const opponents = players.filter((p) => p.uid !== myUid);
+    const now = Date.now();
+    const myUid = user?.uid || null;
 
-    // 내 이름, uid 세팅
-    if (meNameEl) {
-      meNameEl.textContent = me ? (me.name || "나") : "나";
+    // uid -> 플레이어 매핑
+    const playerMap = new Map();
+    for (const p of players) {
+      if (!p.uid) continue;
+      playerMap.set(p.uid, p);
     }
+
+    const me = myUid ? playerMap.get(myUid) || null : null;
+
+    // 🔹 죽음 이벤트 감지 → 토스트 표시
+    for (const p of players) {
+      if (!p.uid) continue;
+      const prev = prevState.get(p.uid);
+      const wasAlive = prev ? prev.isAlive !== false : true;
+      const isNowDead = p.isAlive === false;
+
+      if (wasAlive && isNowDead) {
+        // 방금 죽은 것
+        const victimName = (p.name || "플레이어");
+        let killerName = "필드";
+
+        if (p.killedByUid && playerMap.has(p.killedByUid)) {
+          killerName = playerMap.get(p.killedByUid).name || "플레이어";
+        }
+
+        showKillToast(`${killerName}가 ${victimName}를 격파했습니다`);
+      }
+    }
+
+    // 🔹 spectator / 내 이름 UI
+    if (meNameEl) {
+      if (!me) {
+        meNameEl.textContent = "나";
+      } else if (me.isAlive === false) {
+        // 나는 죽었지만 방 안에 남아 있음 → 관전 모드
+        meNameEl.textContent = "관전 중";
+      } else {
+        meNameEl.textContent = me.name || "나";
+      }
+    }
+
     if (myFieldEl && myUid) {
       myFieldEl.setAttribute("data-uid", myUid);
+      if (me && me.isAlive === false) {
+        // 내 필드는 흐리게 처리 (완전 숨길 거면 display:none 으로 변경 가능)
+        myFieldEl.style.filter = "grayscale(100%)";
+        myFieldEl.style.opacity = "0.2";
+      } else {
+        myFieldEl.style.filter = "none";
+        myFieldEl.style.opacity = "1";
+      }
     }
 
     if (!rightSide) return;
+
+    // 🔹 상대 분류: 살아있는 / 죽은지 2초 이내(회색 유지) / 그 외는 안 보임
+    const aliveOpponents = [];
+    const fadingOpponents = [];
+
+    for (const p of players) {
+      if (!p.uid || p.uid === myUid) continue;
+
+      if (p.isAlive === false) {
+        if (!p.diedAt) continue;
+        let diedMs = null;
+        try {
+          diedMs = typeof p.diedAt.toMillis === "function"
+            ? p.diedAt.toMillis()
+            : Number(p.diedAt);
+        } catch {
+          diedMs = null;
+        }
+        if (!diedMs) continue;
+        const diff = now - diedMs;
+        if (diff < 2000) {
+          // 죽은지 2초 이내 → 회색 필드로 잠깐 보여줌
+          fadingOpponents.push(p);
+        }
+        // 2초 넘으면 아예 표시 X
+      } else {
+        aliveOpponents.push(p);
+      }
+    }
+
+    const opponents = [...aliveOpponents, ...fadingOpponents];
 
     // 상대 0명 → 안내 텍스트
     if (opponents.length === 0) {
@@ -532,12 +675,16 @@ function renderMultiPlay(roomRef, roomCode) {
           상대를 기다리는 중...
         </div>
       `;
+      // prevState 갱신
+      updatePrevState(prevState, players);
       return;
     }
 
     // 상대 1명 → 처음 두 명 레이아웃(큰 HOLD / FIELD / NEXT 세트 하나)
     if (opponents.length === 1) {
       const opp = opponents[0];
+      const isDead = opp.isAlive === false;
+
       rightSide.innerHTML = `
         <div
           style="
@@ -601,6 +748,7 @@ function renderMultiPlay(roomRef, roomCode) {
                   linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
                   linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
                 background-size: calc(100%/10) calc(100%/20);
+                ${isDead ? "filter: grayscale(100%); opacity:0.4;" : ""}
               "
             ></div>
             <div
@@ -641,6 +789,8 @@ function renderMultiPlay(roomRef, roomCode) {
           </div>
         </div>
       `;
+
+      updatePrevState(prevState, players);
       return; // ✅ 2명만 남으면 항상 이 레이아웃
     }
 
@@ -655,10 +805,16 @@ function renderMultiPlay(roomRef, roomCode) {
     const fieldWidth = Math.round(
       maxFieldWidth - (maxFieldWidth - minFieldWidth) * t
     );
-    const cardTotalWidth = fieldWidth + 80; // HOLD + FIELD + NEXT 전체 폭 대략
+    const holdNextWidth = Math.round(fieldWidth * 0.33);
+    const cardTotalWidth = fieldWidth + holdNextWidth * 2 + 8; // HOLD + FIELD + NEXT + gap
 
     const oppCardsHtml = opponents
       .map((p) => {
+        const isDead = p.isAlive === false;
+        const fieldExtraStyle = isDead
+          ? "filter: grayscale(100%); opacity:0.4;"
+          : "";
+
         return `
           <div
             style="
@@ -679,8 +835,7 @@ function renderMultiPlay(roomRef, roomCode) {
               <!-- HOLD (mini) -->
               <div
                 style="
-                  width: 0.36 * ${fieldWidth}px;
-                  width: ${Math.round(fieldWidth * 0.33)}px;
+                  width: ${holdNextWidth}px;
                   height: 80px;
                   background: rgba(16,19,32,0.35);
                   border: 2px solid rgba(0,0,0,0.9);
@@ -723,13 +878,14 @@ function renderMultiPlay(roomRef, roomCode) {
                     linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
                     linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
                   background-size: calc(100%/10) calc(100%/20);
+                  ${fieldExtraStyle}
                 "
               ></div>
 
               <!-- NEXT (mini) -->
               <div
                 style="
-                  width: ${Math.round(fieldWidth * 0.33)}px;
+                  width: ${holdNextWidth}px;
                   height: 80px;
                   background: rgba(16,19,32,0.35);
                   border: 2px solid rgba(0,0,0,0.9);
@@ -787,7 +943,55 @@ function renderMultiPlay(roomRef, roomCode) {
         ${oppCardsHtml}
       </div>
     `;
+
+    // 🔹 이전 상태 갱신
+    updatePrevState(prevState, players);
   });
+
+  // ===== 내부 헬퍼들 =====
+
+  function updatePrevState(store, players) {
+    store.clear();
+    for (const p of players) {
+      if (!p.uid) continue;
+      store.set(p.uid, { isAlive: p.isAlive !== false });
+    }
+  }
+
+  function createKillToastElement() {
+    let el = document.getElementById("kill-toast");
+    if (el) return el;
+    el = document.createElement("div");
+    el.id = "kill-toast";
+    el.style.position = "fixed";
+    el.style.top = "72px";
+    el.style.right = "24px";
+    el.style.padding = "8px 12px";
+    el.style.borderRadius = "10px";
+    el.style.background = "rgba(16,19,32,0.9)";
+    el.style.border = "1px solid rgba(255,255,255,0.25)";
+    el.style.boxShadow = "0 8px 24px rgba(0,0,0,.5)";
+    el.style.color = "#fff";
+    el.style.fontSize = "13px";
+    el.style.opacity = "0";
+    el.style.transform = "translateY(-10px)";
+    el.style.transition = "opacity .2s ease, transform .2s ease";
+    el.style.zIndex = "999";
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function showKillToast(message) {
+    if (!killToastEl) return;
+    killToastEl.textContent = message;
+    killToastEl.style.opacity = "1";
+    killToastEl.style.transform = "translateY(0)";
+    if (killToastTimer) clearTimeout(killToastTimer);
+    killToastTimer = setTimeout(() => {
+      killToastEl.style.opacity = "0";
+      killToastEl.style.transform = "translateY(-10px)";
+    }, 2400);
+  }
 }
 
 
