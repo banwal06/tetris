@@ -368,11 +368,12 @@ function renderPlayScreen(mode = "single") {
   });
 }
 
-/* ===== 멀티플레이 실제 게임 화면 (왼쪽 나 / 오른쪽 상대, TE 스타일 필드 배치) ===== */
+/* ===== 멀티플레이 실제 게임 화면 ===== */
 function renderMultiPlay(roomRef, roomCode) {
   if (!contentArea) return;
   const user = auth.currentUser;
 
+  // 기본 레이아웃: 왼쪽 내 세트 + 오른쪽 영역(동적으로 채움)
   contentArea.innerHTML = `
     <div
       style="
@@ -383,7 +384,7 @@ function renderMultiPlay(roomRef, roomCode) {
         gap: 80px;
       "
     >
-      <!-- 왼쪽: 내 세트 -->
+      <!-- 왼쪽: 내 세트(고정) -->
       <div
         style="
           display: flex;
@@ -429,6 +430,7 @@ function renderMultiPlay(roomRef, roomCode) {
         >
           <div
             class="my-field"
+            data-uid=""
             style="
               width: 260px;
               aspect-ratio: 10 / 20;
@@ -449,107 +451,6 @@ function renderMultiPlay(roomRef, roomCode) {
           ></div>
           <div
             id="player-name-me"
-            style="
-              color:#fff;
-              font-weight:600;
-              text-shadow:0 2px 8px rgba(0,0,0,.6);
-            "
-          ></div>
-        </div>
-
-        <!-- NEXT -->
-        <div
-          style="
-            width: 130px;
-            height: calc(260px * 2); /* 메인 필드 높이와 맞춤 */
-            background: rgba(16,19,32,0.35);
-            border: 3px solid rgba(0,0,0,0.95);
-            box-shadow:
-              0 0 0 2px rgba(255,255,255,0.06) inset,
-              0 8px 24px rgba(0,0,0,.35);
-            backdrop-filter: blur(6px) saturate(140%);
-            -webkit-backdrop-filter: blur(6px) saturate(140%);
-            position: relative;
-          "
-        >
-          <div
-            style="
-              position:absolute; top:10px; left:12px;
-              color:#fff; font-weight:800; letter-spacing:.5px;
-              text-shadow:0 2px 8px rgba(0,0,0,.55);
-            "
-          >
-            NEXT
-          </div>
-        </div>
-      </div>
-
-      <!-- 오른쪽: 상대 세트 -->
-      <div
-        style="
-          display: flex;
-          align-items: flex-start;
-          justify-content: center;
-          gap: 16px;
-        "
-      >
-        <!-- HOLD -->
-        <div
-          style="
-            width: 130px;
-            height: 220px;
-            background: rgba(16,19,32,0.35);
-            border: 3px solid rgba(0,0,0,0.95);
-            box-shadow:
-              0 0 0 2px rgba(255,255,255,0.06) inset,
-              0 8px 24px rgba(0,0,0,.35);
-            backdrop-filter: blur(6px) saturate(140%);
-            -webkit-backdrop-filter: blur(6px) saturate(140%);
-            position: relative;
-          "
-        >
-          <div
-            style="
-              position:absolute; top:10px; left:12px;
-              color:#fff; font-weight:800; letter-spacing:.5px;
-              text-shadow:0 2px 8px rgba(0,0,0,.55);
-            "
-          >
-            HOLD
-          </div>
-        </div>
-
-        <!-- 메인 필드 + 이름 -->
-        <div
-          style="
-            display:flex;
-            flex-direction:column;
-            align-items:center;
-            gap:8px;
-          "
-        >
-          <div
-            class="opp-field"
-            style="
-              width: 260px;
-              aspect-ratio: 10 / 20;
-              background-color: rgba(20,28,42,0.50);
-              backdrop-filter: blur(10px) saturate(140%);
-              -webkit-backdrop-filter: blur(10px) saturate(140%);
-              border: 3px solid rgba(0,0,0,0.95);
-              box-shadow:
-                0 10px 24px rgba(0,0,0,.35),
-                inset 0 0 0 2px rgba(255,255,255,0.08);
-              border-radius: 10px;
-              overflow: hidden;
-              background-image:
-                linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
-              background-size: calc(100%/10) calc(100%/20);
-            "
-          ></div>
-          <div
-            id="player-name-opponent"
             style="
               color:#fff;
               font-weight:600;
@@ -584,34 +485,235 @@ function renderMultiPlay(roomRef, roomCode) {
           </div>
         </div>
       </div>
+
+      <!-- 오른쪽: 상대들 영역 (동적 구성) -->
+      <div
+        id="right-side"
+        style="
+          min-width: 320px;
+          max-width: 640px;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+        "
+      ></div>
     </div>
   `;
 
   const meNameEl = document.getElementById("player-name-me");
-  const oppNameEl = document.getElementById("player-name-opponent");
+  const myFieldEl = contentArea.querySelector(".my-field");
+  const rightSide = document.getElementById("right-side");
 
-  // Firestore players 컬렉션에서 이름 바인딩
-  if (roomRef) {
-    onSnapshot(collection(roomRef, "players"), (snap) => {
-      const players = [];
-      snap.forEach((docSnap) => players.push(docSnap.data()));
+  if (!roomRef) return;
 
-      const myUid = user?.uid;
-      const me = players.find((p) => p.uid === myUid);
-      const others = players.filter((p) => p.uid !== myUid);
-      const opponent = others[0];
+  // players 스냅샷 구독해서 내 이름/상대 필드들 렌더링
+  onSnapshot(collection(roomRef, "players"), (snap) => {
+    const players = [];
+    snap.forEach((docSnap) => players.push(docSnap.data()));
 
-      if (meNameEl) {
-        meNameEl.textContent = me ? (me.name || "나") : "나";
-      }
-      if (oppNameEl) {
-        oppNameEl.textContent = opponent
-          ? (opponent.name || "상대")
-          : "상대를 기다리는 중...";
-      }
-    });
-  }
+    const myUid = user?.uid;
+    const me = players.find((p) => p.uid === myUid) || null;
+    const opponents = players.filter((p) => p.uid !== myUid);
+
+    // 내 이름 / 내 필드 uid 세팅
+    if (meNameEl) {
+      meNameEl.textContent = me ? (me.name || "나") : "나";
+    }
+    if (myFieldEl && myUid) {
+      myFieldEl.setAttribute("data-uid", myUid);
+    }
+
+    if (!rightSide) return;
+
+    // 상대가 0명인 경우: 안내 텍스트만
+    if (opponents.length === 0) {
+      rightSide.innerHTML = `
+        <div style="color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.6);">
+          상대를 기다리는 중...
+        </div>
+      `;
+      return;
+    }
+
+    // 상대가 1명일 때: 기존처럼 큰 세트 하나 (HOLD/필드/NEXT)
+    if (opponents.length === 1) {
+      const opp = opponents[0];
+      rightSide.innerHTML = `
+        <div
+          style="
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 16px;
+          "
+        >
+          <!-- HOLD -->
+          <div
+            style="
+              width: 130px;
+              height: 220px;
+              background: rgba(16,19,32,0.35);
+              border: 3px solid rgba(0,0,0,0.95);
+              box-shadow:
+                0 0 0 2px rgba(255,255,255,0.06) inset,
+                0 8px 24px rgba(0,0,0,.35);
+              backdrop-filter: blur(6px) saturate(140%);
+              -webkit-backdrop-filter: blur(6px) saturate(140%);
+              position: relative;
+            "
+          >
+            <div
+              style="
+                position:absolute; top:10px; left:12px;
+                color:#fff; font-weight:800; letter-spacing:.5px;
+                text-shadow:0 2px 8px rgba(0,0,0,.55);
+              "
+            >
+              HOLD
+            </div>
+          </div>
+
+          <!-- 메인 필드 + 이름 -->
+          <div
+            style="
+              display:flex;
+              flex-direction:column;
+              align-items:center;
+              gap:8px;
+            "
+          >
+            <div
+              class="opp-field"
+              data-uid="${opp.uid || ""}"
+              style="
+                width: 260px;
+                aspect-ratio: 10 / 20;
+                background-color: rgba(20,28,42,0.50);
+                backdrop-filter: blur(10px) saturate(140%);
+                -webkit-backdrop-filter: blur(10px) saturate(140%);
+                border: 3px solid rgba(0,0,0,0.95);
+                box-shadow:
+                  0 10px 24px rgba(0,0,0,.35),
+                  inset 0 0 0 2px rgba(255,255,255,0.08);
+                border-radius: 10px;
+                overflow: hidden;
+                background-image:
+                  linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
+                background-size: calc(100%/10) calc(100%/20);
+              "
+            ></div>
+            <div
+              style="
+                color:#fff;
+                font-weight:600;
+                text-shadow:0 2px 8px rgba(0,0,0,.6);
+              "
+            >
+              ${opp.name || "상대"}
+            </div>
+          </div>
+
+          <!-- NEXT -->
+          <div
+            style="
+              width: 130px;
+              height: calc(260px * 2);
+              background: rgba(16,19,32,0.35);
+              border: 3px solid rgba(0,0,0,0.95);
+              box-shadow:
+                0 0 0 2px rgba(255,255,255,0.06) inset,
+                0 8px 24px rgba(0,0,0,.35);
+              backdrop-filter: blur(6px) saturate(140%);
+              -webkit-backdrop-filter: blur(6px) saturate(140%);
+              position: relative;
+            "
+          >
+            <div
+              style="
+                position:absolute; top:10px; left:12px;
+                color:#fff; font-weight:800; letter-spacing:.5px;
+                text-shadow:0 2px 8px rgba(0,0,0,.55);
+              "
+            >
+              NEXT
+            </div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    // 🔥 상대가 2명 이상일 때: 오른쪽 영역을 그리드로, 필드 자동 축소
+    // 그리드 셀 폭은 minmax(120px, 1fr) → 인원 늘어날수록 자동으로 작아짐
+    const oppCardsHtml = opponents
+      .map((p) => {
+        return `
+          <div
+            style="
+              display:flex;
+              flex-direction:column;
+              align-items:center;
+              gap:4px;
+            "
+          >
+            <div
+              class="opp-field"
+              data-uid="${p.uid || ""}"
+              style="
+                width: 150px;
+                aspect-ratio: 10 / 20;
+                background-color: rgba(20,28,42,0.50);
+                backdrop-filter: blur(10px) saturate(140%);
+                -webkit-backdrop-filter: blur(10px) saturate(140%);
+                border: 2px solid rgba(0,0,0,0.9);
+                box-shadow:
+                  0 6px 14px rgba(0,0,0,.30),
+                  inset 0 0 0 1px rgba(255,255,255,0.08);
+                border-radius: 8px;
+                overflow: hidden;
+                background-image:
+                  linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
+                background-size: calc(100%/10) calc(100%/20);
+              "
+            ></div>
+            <div
+              style="
+                color:#fff;
+                font-size: 13px;
+                font-weight:600;
+                text-shadow:0 2px 6px rgba(0,0,0,.6);
+                text-align:center;
+                max-width: 150px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              "
+            >
+              ${p.name || "상대"}
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+
+    rightSide.innerHTML = `
+      <div
+        style="
+          display:grid;
+          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+          gap: 12px;
+          justify-items: center;
+          width: 100%;
+        "
+      >
+        ${oppCardsHtml}
+      </div>
+    `;
+  });
 }
+
 
 /* ===== 멀티플레이 진입 화면 ===== */
 function renderMultiEntry() {
