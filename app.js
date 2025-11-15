@@ -368,27 +368,80 @@ function renderPlayScreen(mode = "single") {
   });
 }
 
-/* ===== 멀티플레이 실제 게임 화면 ===== */
+/* ===== 멀티플레이 실제 게임 화면 (내 필드 왼쪽 / 상대 필드 오른쪽) ===== */
 function renderMultiPlay(roomRef, roomCode) {
   if (!contentArea) return;
 
+  const user = auth.currentUser;
+
   contentArea.innerHTML = `
     <div class="stage-wrap">
-      <div class="stage">
+      <!-- duo-mode 클래스: CSS에서 듀오 레이아웃용 규칙 사용 -->
+      <div class="stage duo-mode">
         <div class="box left">
           <div class="label">HOLD</div>
         </div>
 
         <div class="play-grid">
-          <div class="field" role="img" aria-label="10×20 grid"></div>
+          <!-- 두 필드를 나란히 배치 -->
+          <div class="play-container duo">
+            <!-- 내 보드 (왼쪽) -->
+            <div class="board-wrapper">
+              <div class="field my-field" role="img" aria-label="내 필드"></div>
+              <div
+                id="player-name-me"
+                style="margin-top:8px;text-align:center;font-weight:600;"
+              ></div>
+            </div>
+
+            <!-- 상대 보드 (오른쪽) -->
+            <div class="board-wrapper">
+              <div class="field opp-field" role="img" aria-label="상대 필드"></div>
+              <div
+                id="player-name-opponent"
+                style="margin-top:8px;text-align:center;font-weight:600;"
+              ></div>
+            </div>
+          </div>
         </div>
 
+        <!-- duo-mode 에서는 CSS에서 .box.right 숨겨둔 상태라 표시 안 됨 -->
         <div class="box right">
           <div class="label">NEXT</div>
         </div>
       </div>
     </div>
   `;
+
+  const meNameEl = document.getElementById("player-name-me");
+  const oppNameEl = document.getElementById("player-name-opponent");
+
+  // 방의 players 컬렉션을 구독해서 내 이름/상대 이름 표시
+  if (roomRef) {
+    onSnapshot(collection(roomRef, "players"), (snap) => {
+      const players = [];
+      snap.forEach((doc) => players.push(doc.data()));
+
+      const myUid = user?.uid;
+      const me = players.find((p) => p.uid === myUid);
+      const others = players.filter((p) => p.uid !== myUid);
+      const opponent = others[0]; // 첫 번째 상대
+
+      if (meNameEl) {
+        meNameEl.textContent = me
+          ? (me.name || "나")
+          : "나";
+      }
+
+      if (oppNameEl) {
+        if (opponent) {
+          oppNameEl.textContent = opponent.name || "상대";
+        } else {
+          oppNameEl.textContent = "상대를 기다리는 중...";
+        }
+      }
+    });
+  }
 }
 
 /* ===== 멀티플레이 진입 화면 ===== */
