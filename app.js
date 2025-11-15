@@ -506,7 +506,7 @@ function renderMultiPlay(roomRef, roomCode) {
 
   if (!roomRef) return;
 
-  // players 스냅샷 구독
+  // players 스냅샷 구독 → 누가 나가도 즉시 반영
   onSnapshot(collection(roomRef, "players"), (snap) => {
     const players = [];
     snap.forEach((docSnap) => players.push(docSnap.data()));
@@ -525,7 +525,7 @@ function renderMultiPlay(roomRef, roomCode) {
 
     if (!rightSide) return;
 
-    // 상대 없음
+    // 상대 0명 → 안내 텍스트
     if (opponents.length === 0) {
       rightSide.innerHTML = `
         <div style="color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.6);">
@@ -535,7 +535,7 @@ function renderMultiPlay(roomRef, roomCode) {
       return;
     }
 
-    // 상대 1명: 기존처럼 큰 세트 (HOLD/필드/NEXT)
+    // 상대 1명 → 처음 두 명 레이아웃(큰 HOLD / FIELD / NEXT 세트 하나)
     if (opponents.length === 1) {
       const opp = opponents[0];
       rightSide.innerHTML = `
@@ -641,10 +641,22 @@ function renderMultiPlay(roomRef, roomCode) {
           </div>
         </div>
       `;
-      return;
+      return; // ✅ 2명만 남으면 항상 이 레이아웃
     }
 
-    // 🔥 상대 2명 이상: 각 플레이어마다 작은 HOLD / FIELD / NEXT 세트 카드
+    // 🔥 상대 2명 이상 → 오른쪽을 그리드 + 카드 크기 동적 조절
+    const oppCount = opponents.length;
+
+    // 필드 폭: 인원 많을수록 작아짐, 2명일 때 140, 6명 이상 90 근처
+    const maxFieldWidth = 140;
+    const minFieldWidth = 90;
+    const clamped = Math.min(Math.max(oppCount, 2), 6); // 2~6
+    const t = (clamped - 2) / (6 - 2);                   // 0~1
+    const fieldWidth = Math.round(
+      maxFieldWidth - (maxFieldWidth - minFieldWidth) * t
+    );
+    const cardTotalWidth = fieldWidth + 80; // HOLD + FIELD + NEXT 전체 폭 대략
+
     const oppCardsHtml = opponents
       .map((p) => {
         return `
@@ -667,7 +679,8 @@ function renderMultiPlay(roomRef, roomCode) {
               <!-- HOLD (mini) -->
               <div
                 style="
-                  width: 40px;
+                  width: 0.36 * ${fieldWidth}px;
+                  width: ${Math.round(fieldWidth * 0.33)}px;
                   height: 80px;
                   background: rgba(16,19,32,0.35);
                   border: 2px solid rgba(0,0,0,0.9);
@@ -695,7 +708,7 @@ function renderMultiPlay(roomRef, roomCode) {
                 class="opp-field"
                 data-uid="${p.uid || ""}"
                 style="
-                  width: 110px;
+                  width: ${fieldWidth}px;
                   aspect-ratio: 10 / 20;
                   background-color: rgba(20,28,42,0.50);
                   backdrop-filter: blur(8px) saturate(130%);
@@ -716,7 +729,7 @@ function renderMultiPlay(roomRef, roomCode) {
               <!-- NEXT (mini) -->
               <div
                 style="
-                  width: 40px;
+                  width: ${Math.round(fieldWidth * 0.33)}px;
                   height: 80px;
                   background: rgba(16,19,32,0.35);
                   border: 2px solid rgba(0,0,0,0.9);
@@ -748,7 +761,7 @@ function renderMultiPlay(roomRef, roomCode) {
                 font-weight:600;
                 text-shadow:0 2px 6px rgba(0,0,0,.6);
                 text-align:center;
-                max-width: 200px;
+                max-width: ${cardTotalWidth}px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -765,7 +778,7 @@ function renderMultiPlay(roomRef, roomCode) {
       <div
         style="
           display:grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(${cardTotalWidth}px, 1fr));
           gap: 12px;
           justify-items: center;
           width: 100%;
