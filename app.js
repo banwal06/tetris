@@ -371,16 +371,10 @@ function renderPlayScreen(mode = "single") {
 /* ===== 멀티플레이 실제 게임 화면 ===== */
 function renderMultiPlay(roomRef, roomCode) {
   if (!contentArea) return;
-  contentArea.innerHTML = `
 
+  contentArea.innerHTML = `
     <div class="stage-wrap">
       <div class="stage">
-        <div class="top-ui">
-          <button id="multi-back" class="back-btn" type="button">← 메뉴</button>
-          <div class="title">멀티 플레이</div>
-          <div class="room-code">코드: <span>${roomCode}</span></div>
-        </div>
-
         <div class="box left">
           <div class="label">HOLD</div>
         </div>
@@ -395,13 +389,6 @@ function renderMultiPlay(roomRef, roomCode) {
       </div>
     </div>
   `;
-
-  document.getElementById("multi-back")?.addEventListener("click", () => {
-    // TODO: 방 나가기 / 게임 종료 로직 필요하면 여기서 처리
-    renderHomeMenu();
-  });
-
-  // TODO: roomRef, roomCode 가지고 실제 멀티 게임 초기화 붙이면 됨
 }
 
 /* ===== 멀티플레이 진입 화면 ===== */
@@ -432,10 +419,12 @@ function renderMultiEntry() {
     renderHomeMenu();
   });
 
+  // 방 만들기 → 방 생성 화면
   createBtn?.addEventListener("click", () => {
     renderCreateRoom();
   });
 
+  // 방 참가하기 → 참가 화면
   joinBtn?.addEventListener("click", () => {
     renderJoinRoom();
   });
@@ -458,7 +447,8 @@ function renderCreateRoom() {
   let roomCode = "";
   let unsubRoom = null;
   let unsubPlayers = null;
-  const isHost = true; // 이 화면은 방장
+  const isHost = true;           // 이 화면은 방장
+  let currentPlayerCount = 1;    // 현재 인원 (방장 포함)
 
   contentArea.innerHTML = `
 
@@ -491,16 +481,13 @@ function renderCreateRoom() {
   const backBtn = document.getElementById("room-back");
   const statusEl = document.getElementById("room-status");
 
-  // 확실히 비활성 상태로 시작
-  if (startBtn) startBtn.disabled = true;
-
   // 방 생성 + 본인 등록 + 구독
   (async function init() {
     try {
       const created = await createRoomInFirestore(user);
       roomRef = created.ref;
       roomCode = created.code;
-      // 인원 수에 따른 시작 버튼 활성화는 subscribePlayers에서 처리
+      // 시작 버튼은 인원 스냅샷에서 2명 이상일 때만 활성화
       subscribeRoom();
       subscribePlayers();
     } catch (e) {
@@ -508,25 +495,34 @@ function renderCreateRoom() {
     }
   })();
 
-  // 초대 코드 복사
+  // “초대코드” 버튼 클릭 → 초대 코드 복사
   copyBtn.addEventListener("click", async () => {
     try { await navigator.clipboard.writeText(roomCode); } catch {}
   });
 
-  // 시작 (방장만)
+  // 시작(방장만, 최소 2인 이상)
   startBtn.addEventListener("click", async () => {
     if (!roomRef || !isHost) return;
+
+    if (currentPlayerCount < 2) {
+      statusEl.textContent = "플레이어가 2명 이상일 때만 시작할 수 있습니다.";
+      return;
+    }
+
     try {
       await updateDoc(roomRef, { status: "started", startedAt: serverTimestamp() });
+
       try { if (unsubRoom) unsubRoom(); } catch {}
       try { if (unsubPlayers) unsubPlayers(); } catch {}
+
+      // 멀티 게임 화면으로 전환
       renderMultiPlay(roomRef, roomCode);
     } catch (e) {
       statusEl.textContent = e?.message || "시작에 실패했습니다.";
     }
   });
 
-  // 메인 메뉴로 나가기
+  // 메인 메뉴(나가기)
   backBtn.addEventListener("click", async () => {
     await leaveRoom();
     renderMultiEntry();
@@ -549,35 +545,28 @@ function renderCreateRoom() {
 
   function subscribePlayers() {
     if (!roomRef) return;
-
-    const MIN_PLAYERS = 2; // 시작 가능한 최소 인원
-
     unsubPlayers = onSnapshot(collection(roomRef, "players"), (snap) => {
       const list = [];
       snap.forEach((doc) => list.push(doc.data()));
-      list.sort((a, b) => (b.isHost ? 1 : 0) - (a.isHost ? 1 : 0)); // 방장 먼저
+      list.sort((a,b) => (b.isHost ? 1 : 0) - (a.isHost ? 1 : 0)); // 방장 먼저
+
+      // 현재 인원 수 갱신
+      currentPlayerCount = list.length;
+
+      // 인원 수에 따라 시작 버튼 on/off
+      if (currentPlayerCount >= 2) {
+        startBtn.disabled = false;
+        statusEl.textContent = "플레이어가 2명 이상입니다. 시작 버튼을 눌러주세요.";
+      } else {
+        startBtn.disabled = true;
+        statusEl.textContent = "시작하려면 최소 2명이 필요합니다.";
+      }
 
       playersEl.innerHTML = list.map(p => {
         const host = p.isHost ? " (방장)" : "";
         const name = p.name || "플레이어";
         return `<li><span>${name}${host}</span><span class="grow"></span></li>`;
       }).join("");
-
-      const count = list.length;
-
-      // 인원 수에 따라 시작 버튼 활성/비활성
-      if (startBtn) {
-        startBtn.disabled = count < MIN_PLAYERS;
-      }
-
-      // 상태 메시지
-      if (statusEl) {
-        if (count < MIN_PLAYERS) {
-          statusEl.textContent = `시작하려면 최소 ${MIN_PLAYERS}명이 필요합니다. (현재 ${count}명)`;
-        } else {
-          statusEl.textContent = `시작 가능합니다. (현재 ${count}명)`;
-        }
-      }
     });
   }
 
@@ -738,6 +727,7 @@ function renderGuestLobby(roomRef, roomCode) {
       if (data.status === "started") {
         try { if (unsubRoom) unsubRoom(); } catch {}
         try { if (unsubPlayers) unsubPlayers(); } catch {}
+        // 방장이 시작하면 참가자도 멀티 게임 화면으로 전환
         renderMultiPlay(roomRef, roomCode);
       } else if (data.status === "closed") {
         statusEl.textContent = "방이 종료되었습니다.";
