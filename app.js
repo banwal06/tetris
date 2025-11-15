@@ -374,7 +374,7 @@ function renderMultiPlay(roomRef, roomCode) {
   const user = auth.currentUser;
   if (!roomRef) return;
 
-  // 기본 레이아웃: 상단 나가기 버튼 + 왼쪽 내 세트 + 오른쪽 영역
+  // 기본 레이아웃: 상단 헤더 제거, 가운데에 필드들만 배치
   contentArea.innerHTML = `
     <div
       style="
@@ -383,42 +383,8 @@ function renderMultiPlay(roomRef, roomCode) {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 16px;
       "
     >
-      <!-- 상단: 나가기 버튼 / 제목 -->
-      <div
-        style="
-          width: 100%;
-          max-width: 1200px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0 16px;
-          margin-bottom: 8px;
-          color: #fff;
-          text-shadow: 0 2px 8px rgba(0,0,0,.6);
-        "
-      >
-        <button
-          id="multi-exit"
-          type="button"
-          style="
-            padding: 8px 12px;
-            border-radius: 10px;
-            border: 2px solid rgba(0,0,0,0.9);
-            background: rgba(255,255,255,0.14);
-            color: #fff;
-            cursor: pointer;
-            box-shadow: 0 8px 16px rgba(0,0,0,.35);
-          "
-        >
-          ← 메뉴
-        </button>
-        <div style="font-weight: 800; letter-spacing: .5px;">멀티 플레이</div>
-        <div style="width:72px;"></div>
-      </div>
-
       <!-- 메인 필드 영역 -->
       <div
         style="
@@ -549,7 +515,23 @@ function renderMultiPlay(roomRef, roomCode) {
   const meNameEl = document.getElementById("player-name-me");
   const myFieldEl = contentArea.querySelector(".my-field");
   const rightSide = document.getElementById("right-side");
-  const exitBtn = document.getElementById("multi-exit");
+
+  // 🔹 상단 TeTRIS 로고를 '메뉴 버튼'으로 사용
+  const brandEl = document.querySelector(".brand");
+  if (brandEl) {
+    brandEl.style.cursor = "pointer";
+    brandEl.onclick = async () => {
+      try {
+        const u = auth.currentUser;
+        if (u && roomRef) {
+          await deleteDoc(doc(roomRef, "players", u.uid));
+        }
+      } catch (e) {
+        console.warn("[brand-exit] failed to delete player doc", e);
+      }
+      renderMultiEntry(); // 멀티 진입 화면으로
+    };
+  }
 
   // 🔹 킬 토스트 관련
   const killToastEl = createKillToastElement();
@@ -557,22 +539,6 @@ function renderMultiPlay(roomRef, roomCode) {
 
   // 🔹 이전 스냅샷 상태 (죽음 감지용)
   const prevState = new Map(); // uid -> { isAlive }
-
-  // 🔹 나가기 버튼: 내 player 문서 삭제 + 멀티 메뉴로 복귀
-  if (exitBtn) {
-    exitBtn.addEventListener("click", async () => {
-      try {
-        const u = auth.currentUser;
-        if (u && roomRef) {
-          await deleteDoc(doc(roomRef, "players", u.uid));
-        }
-      } catch (e) {
-        console.warn("[multi-exit] failed to delete player doc", e);
-      }
-      // 방 자체는 유지하고, 나는 멀티 메뉴로
-      renderMultiEntry();
-    });
-  }
 
   // players 스냅샷 구독 → 누가 나가거나/죽어도 즉시 반영
   onSnapshot(collection(roomRef, "players"), (snap) => {
@@ -599,7 +565,6 @@ function renderMultiPlay(roomRef, roomCode) {
       const isNowDead = p.isAlive === false;
 
       if (wasAlive && isNowDead) {
-        // 방금 죽은 것
         const victimName = (p.name || "플레이어");
         let killerName = "필드";
 
@@ -616,7 +581,6 @@ function renderMultiPlay(roomRef, roomCode) {
       if (!me) {
         meNameEl.textContent = "나";
       } else if (me.isAlive === false) {
-        // 나는 죽었지만 방 안에 남아 있음 → 관전 모드
         meNameEl.textContent = "관전 중";
       } else {
         meNameEl.textContent = me.name || "나";
@@ -626,7 +590,6 @@ function renderMultiPlay(roomRef, roomCode) {
     if (myFieldEl && myUid) {
       myFieldEl.setAttribute("data-uid", myUid);
       if (me && me.isAlive === false) {
-        // 내 필드는 흐리게 처리 (완전 숨길 거면 display:none 으로 변경 가능)
         myFieldEl.style.filter = "grayscale(100%)";
         myFieldEl.style.opacity = "0.2";
       } else {
@@ -635,7 +598,10 @@ function renderMultiPlay(roomRef, roomCode) {
       }
     }
 
-    if (!rightSide) return;
+    if (!rightSide) {
+      updatePrevState(prevState, players);
+      return;
+    }
 
     // 🔹 상대 분류: 살아있는 / 죽은지 2초 이내(회색 유지) / 그 외는 안 보임
     const aliveOpponents = [];
@@ -657,10 +623,8 @@ function renderMultiPlay(roomRef, roomCode) {
         if (!diedMs) continue;
         const diff = now - diedMs;
         if (diff < 2000) {
-          // 죽은지 2초 이내 → 회색 필드로 잠깐 보여줌
           fadingOpponents.push(p);
         }
-        // 2초 넘으면 아예 표시 X
       } else {
         aliveOpponents.push(p);
       }
@@ -675,7 +639,6 @@ function renderMultiPlay(roomRef, roomCode) {
           상대를 기다리는 중...
         </div>
       `;
-      // prevState 갱신
       updatePrevState(prevState, players);
       return;
     }
@@ -796,8 +759,6 @@ function renderMultiPlay(roomRef, roomCode) {
 
     // 🔥 상대 2명 이상 → 오른쪽을 그리드 + 카드 크기 동적 조절
     const oppCount = opponents.length;
-
-    // 필드 폭: 인원 많을수록 작아짐, 2명일 때 140, 6명 이상 90 근처
     const maxFieldWidth = 140;
     const minFieldWidth = 90;
     const clamped = Math.min(Math.max(oppCount, 2), 6); // 2~6
@@ -806,7 +767,7 @@ function renderMultiPlay(roomRef, roomCode) {
       maxFieldWidth - (maxFieldWidth - minFieldWidth) * t
     );
     const holdNextWidth = Math.round(fieldWidth * 0.33);
-    const cardTotalWidth = fieldWidth + holdNextWidth * 2 + 8; // HOLD + FIELD + NEXT + gap
+    const cardTotalWidth = fieldWidth + holdNextWidth * 2 + 8;
 
     const oppCardsHtml = opponents
       .map((p) => {
@@ -944,7 +905,6 @@ function renderMultiPlay(roomRef, roomCode) {
       </div>
     `;
 
-    // 🔹 이전 상태 갱신
     updatePrevState(prevState, players);
   });
 
