@@ -368,53 +368,72 @@ function renderPlayScreen(mode = "single") {
   });
 }
 
-/* ===== 멀티플레이 실제 게임 화면 (왼쪽 나 / 오른쪽 상대, 각자 HOLD/NEXT 포함) ===== */
+/* ===== 멀티플레이 실제 게임 화면 (왼쪽 나 / 오른쪽 상대) ===== */
 function renderMultiPlay(roomRef, roomCode) {
   if (!contentArea) return;
   const user = auth.currentUser;
 
   contentArea.innerHTML = `
     <div class="stage-wrap"
-         style="display:flex; justify-content:center; align-items:center; gap:48px; min-height:calc(100vh - 64px);">
+         style="display:flex; justify-content:center; align-items:center; gap:60px; min-height:calc(100vh - 64px);">
 
       <!-- 왼쪽: 내 세트 -->
       <div class="stage"
-           style="position:relative; width:min(42vw,520px); height:min(82vh,680px);">
-        <div class="box left">
+           style="position:relative; width:min(38vw,460px); height:min(82vh,680px);">
+        <!-- HOLD 박스: 조금 좁게 -->
+        <div class="box left"
+             style="width:min(12vw,120px); height:26%;">
           <div class="label">HOLD</div>
         </div>
 
-        <!-- 중앙 필드 + 이름 (세로로 정렬) -->
+        <!-- 중앙 필드 + 이름 (크기 줄여서 세트 안에 맞춤) -->
         <div class="play-grid"
-             style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+             style="
+               position:absolute;
+               left:50%; transform:translateX(-50%);
+               top:0; bottom:0;
+               width:min(26vw,260px);
+               display:flex; flex-direction:column;
+               align-items:center; justify-content:center;
+               gap:8px; padding:12px; background:transparent;">
           <div class="field my-field" role="img" aria-label="내 필드"></div>
           <div id="player-name-me"
                style="color:#fff; font-weight:600; text-shadow:0 2px 8px rgba(0,0,0,.6);">
           </div>
         </div>
 
-        <div class="box right">
+        <!-- NEXT 박스: 세트 폭에 맞춰 조금 줄임 -->
+        <div class="box right"
+             style="width:min(13vw,140px); height:72%;">
           <div class="label">NEXT</div>
         </div>
       </div>
 
       <!-- 오른쪽: 상대 세트 -->
       <div class="stage"
-           style="position:relative; width:min(42vw,520px); height:min(82vh,680px);">
-        <div class="box left">
+           style="position:relative; width:min(38vw,460px); height:min(82vh,680px);">
+        <div class="box left"
+             style="width:min(12vw,120px); height:26%;">
           <div class="label">HOLD</div>
         </div>
 
-        <!-- 중앙 필드 + 이름 (세로로 정렬) -->
         <div class="play-grid"
-             style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+             style="
+               position:absolute;
+               left:50%; transform:translateX(-50%);
+               top:0; bottom:0;
+               width:min(26vw,260px);
+               display:flex; flex-direction:column;
+               align-items:center; justify-content:center;
+               gap:8px; padding:12px; background:transparent;">
           <div class="field opp-field" role="img" aria-label="상대 필드"></div>
           <div id="player-name-opponent"
                style="color:#fff; font-weight:600; text-shadow:0 2px 8px rgba(0,0,0,.6);">
           </div>
         </div>
 
-        <div class="box right">
+        <div class="box right"
+             style="width:min(13vw,140px); height:72%;">
           <div class="label">NEXT</div>
         </div>
       </div>
@@ -424,7 +443,7 @@ function renderMultiPlay(roomRef, roomCode) {
   const meNameEl = document.getElementById("player-name-me");
   const oppNameEl = document.getElementById("player-name-opponent");
 
-  // players 컬렉션에서 내 이름/상대 이름 표시
+  // 방의 players 컬렉션을 구독해서 이름 표시
   if (roomRef) {
     onSnapshot(collection(roomRef, "players"), (snap) => {
       const players = [];
@@ -433,7 +452,7 @@ function renderMultiPlay(roomRef, roomCode) {
       const myUid = user?.uid;
       const me = players.find((p) => p.uid === myUid);
       const others = players.filter((p) => p.uid !== myUid);
-      const opponent = others[0]; // 첫 번째 상대만 사용
+      const opponent = others[0];
 
       if (meNameEl) {
         meNameEl.textContent = me ? (me.name || "나") : "나";
@@ -449,7 +468,6 @@ function renderMultiPlay(roomRef, roomCode) {
     });
   }
 }
-
 
 /* ===== 멀티플레이 진입 화면 ===== */
 function renderMultiEntry() {
