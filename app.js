@@ -368,82 +368,183 @@ function renderPlayScreen(mode = "single") {
   });
 }
 
-/* ===== 멀티플레이 실제 게임 화면 (왼쪽 나 / 오른쪽 상대) ===== */
+/* ===== 멀티플레이 실제 게임 화면 (왼쪽 나 / 오른쪽 상대, 한 세트씩) ===== */
 function renderMultiPlay(roomRef, roomCode) {
   if (!contentArea) return;
   const user = auth.currentUser;
 
   contentArea.innerHTML = `
-    <div class="stage-wrap"
-         style="display:flex; justify-content:center; align-items:center; gap:60px; min-height:calc(100vh - 64px);">
+    <div style="
+      min-height: calc(100vh - 64px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 72px;
+    ">
 
-      <!-- 왼쪽: 내 세트 -->
-      <div class="stage"
-           style="position:relative; width:min(38vw,460px); height:min(82vh,680px);">
-        <!-- HOLD 박스: 조금 좁게 -->
-        <div class="box left"
-             style="width:min(12vw,120px); height:26%;">
-          <div class="label">HOLD</div>
+      <!-- 내 세트 (왼쪽) -->
+      <div style="
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      ">
+        <!-- HOLD -->
+        <div style="
+          width: 150px;
+          height: 150px;
+          background: rgba(16,19,32,0.35);
+          border: 3px solid rgba(0,0,0,0.95);
+          box-shadow:
+            0 0 0 2px rgba(255,255,255,0.06) inset,
+            0 8px 24px rgba(0,0,0,.35);
+          backdrop-filter: blur(6px) saturate(140%);
+          -webkit-backdrop-filter: blur(6px) saturate(140%);
+          position: relative;
+        ">
+          <div style="
+            position:absolute; top:10px; left:12px;
+            color:#fff; font-weight:800; letter-spacing:.5px;
+            text-shadow:0 2px 8px rgba(0,0,0,.55);
+          ">HOLD</div>
         </div>
 
-        <!-- 중앙 필드 + 이름 (크기 줄여서 세트 안에 맞춤) -->
-        <div class="play-grid"
-             style="
-               position:absolute;
-               left:50%; transform:translateX(-50%);
-               top:0; bottom:0;
-               width:min(26vw,260px);
-               display:flex; flex-direction:column;
-               align-items:center; justify-content:center;
-               gap:8px; padding:12px; background:transparent;">
-          <div class="field my-field" role="img" aria-label="내 필드"></div>
-          <div id="player-name-me"
-               style="color:#fff; font-weight:600; text-shadow:0 2px 8px rgba(0,0,0,.6);">
-          </div>
+        <!-- 메인 필드 + 이름 -->
+        <div style="
+          display:flex;
+          flex-direction:column;
+          align-items:center;
+          gap:8px;
+        ">
+          <div class="my-field" style="
+            width: 240px;
+            aspect-ratio: 10 / 20;
+            background-color: rgba(20,28,42,0.50);
+            backdrop-filter: blur(10px) saturate(140%);
+            -webkit-backdrop-filter: blur(10px) saturate(140%);
+            border: 3px solid rgba(0,0,0,0.95);
+            box-shadow:
+              0 10px 24px rgba(0,0,0,.35),
+              inset 0 0 0 2px rgba(255,255,255,0.08);
+            border-radius: 10px;
+            overflow: hidden;
+            background-image:
+              linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
+            background-size: calc(100%/10) calc(100%/20);
+          "></div>
+          <div id="player-name-me" style="
+            color:#fff;
+            font-weight:600;
+            text-shadow:0 2px 8px rgba(0,0,0,.6);
+          "></div>
         </div>
 
-        <!-- NEXT 박스: 세트 폭에 맞춰 조금 줄임 -->
-        <div class="box right"
-             style="width:min(13vw,140px); height:72%;">
-          <div class="label">NEXT</div>
+        <!-- NEXT -->
+        <div style="
+          width: 150px;
+          height: 420px;
+          background: rgba(16,19,32,0.35);
+          border: 3px solid rgba(0,0,0,0.95);
+          box-shadow:
+            0 0 0 2px rgba(255,255,255,0.06) inset,
+            0 8px 24px rgba(0,0,0,.35);
+          backdrop-filter: blur(6px) saturate(140%);
+          -webkit-backdrop-filter: blur(6px) saturate(140%);
+          position: relative;
+        ">
+          <div style="
+            position:absolute; top:10px; left:12px;
+            color:#fff; font-weight:800; letter-spacing:.5px;
+            text-shadow:0 2px 8px rgba(0,0,0,.55);
+          ">NEXT</div>
         </div>
       </div>
 
-      <!-- 오른쪽: 상대 세트 -->
-      <div class="stage"
-           style="position:relative; width:min(38vw,460px); height:min(82vh,680px);">
-        <div class="box left"
-             style="width:min(12vw,120px); height:26%;">
-          <div class="label">HOLD</div>
+      <!-- 상대 세트 (오른쪽) -->
+      <div style="
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      ">
+        <!-- HOLD -->
+        <div style="
+          width: 150px;
+          height: 150px;
+          background: rgba(16,19,32,0.35);
+          border: 3px solid rgba(0,0,0,0.95);
+          box-shadow:
+            0 0 0 2px rgba(255,255,255,0.06) inset,
+            0 8px 24px rgba(0,0,0,.35);
+          backdrop-filter: blur(6px) saturate(140%);
+          -webkit-backdrop-filter: blur(6px) saturate(140%);
+          position: relative;
+        ">
+          <div style="
+            position:absolute; top:10px; left:12px;
+            color:#fff; font-weight:800; letter-spacing:.5px;
+            text-shadow:0 2px 8px rgba(0,0,0,.55);
+          ">HOLD</div>
         </div>
 
-        <div class="play-grid"
-             style="
-               position:absolute;
-               left:50%; transform:translateX(-50%);
-               top:0; bottom:0;
-               width:min(26vw,260px);
-               display:flex; flex-direction:column;
-               align-items:center; justify-content:center;
-               gap:8px; padding:12px; background:transparent;">
-          <div class="field opp-field" role="img" aria-label="상대 필드"></div>
-          <div id="player-name-opponent"
-               style="color:#fff; font-weight:600; text-shadow:0 2px 8px rgba(0,0,0,.6);">
-          </div>
+        <!-- 메인 필드 + 이름 -->
+        <div style="
+          display:flex;
+          flex-direction:column;
+          align-items:center;
+          gap:8px;
+        ">
+          <div class="opp-field" style="
+            width: 240px;
+            aspect-ratio: 10 / 20;
+            background-color: rgba(20,28,42,0.50);
+            backdrop-filter: blur(10px) saturate(140%);
+            -webkit-backdrop-filter: blur(10px) saturate(140%);
+            border: 3px solid rgba(0,0,0,0.95);
+            box-shadow:
+              0 10px 24px rgba(0,0,0,.35),
+              inset 0 0 0 2px rgba(255,255,255,0.08);
+            border-radius: 10px;
+            overflow: hidden;
+            background-image:
+              linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
+            background-size: calc(100%/10) calc(100%/20);
+          "></div>
+          <div id="player-name-opponent" style="
+            color:#fff;
+            font-weight:600;
+            text-shadow:0 2px 8px rgba(0,0,0,.6);
+          "></div>
         </div>
 
-        <div class="box right"
-             style="width:min(13vw,140px); height:72%;">
-          <div class="label">NEXT</div>
+        <!-- NEXT -->
+        <div style="
+          width: 150px;
+          height: 420px;
+          background: rgba(16,19,32,0.35);
+          border: 3px solid rgba(0,0,0,0.95);
+          box-shadow:
+            0 0 0 2px rgba(255,255,255,0.06) inset,
+            0 8px 24px rgba(0,0,0,.35);
+          backdrop-filter: blur(6px) saturate(140%);
+          -webkit-backdrop-filter: blur(6px) saturate(140%);
+          position: relative;
+        ">
+          <div style="
+            position:absolute; top:10px; left:12px;
+            color:#fff; font-weight:800; letter-spacing:.5px;
+            text-shadow:0 2px 8px rgba(0,0,0,.55);
+          ">NEXT</div>
         </div>
       </div>
+
     </div>
   `;
 
   const meNameEl = document.getElementById("player-name-me");
   const oppNameEl = document.getElementById("player-name-opponent");
 
-  // 방의 players 컬렉션을 구독해서 이름 표시
+  // Firestore에서 플레이어 이름 가져와서 표시
   if (roomRef) {
     onSnapshot(collection(roomRef, "players"), (snap) => {
       const players = [];
@@ -457,13 +558,10 @@ function renderMultiPlay(roomRef, roomCode) {
       if (meNameEl) {
         meNameEl.textContent = me ? (me.name || "나") : "나";
       }
-
       if (oppNameEl) {
-        if (opponent) {
-          oppNameEl.textContent = opponent.name || "상대";
-        } else {
-          oppNameEl.textContent = "상대를 기다리는 중...";
-        }
+        oppNameEl.textContent = opponent
+          ? (opponent.name || "상대")
+          : "상대를 기다리는 중...";
       }
     });
   }
