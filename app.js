@@ -368,183 +368,229 @@ function renderPlayScreen(mode = "single") {
   });
 }
 
-/* ===== 멀티플레이 실제 게임 화면 (왼쪽 나 / 오른쪽 상대, 한 세트씩) ===== */
+/* ===== 멀티플레이 실제 게임 화면 (왼쪽 나 / 오른쪽 상대, TE 스타일 필드 배치) ===== */
 function renderMultiPlay(roomRef, roomCode) {
   if (!contentArea) return;
   const user = auth.currentUser;
 
   contentArea.innerHTML = `
-    <div style="
-      min-height: calc(100vh - 64px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 72px;
-    ">
-
-      <!-- 내 세트 (왼쪽) -->
-      <div style="
+    <div
+      style="
+        min-height: calc(100vh - 64px);
         display: flex;
         align-items: center;
-        gap: 16px;
-      ">
+        justify-content: center;
+        gap: 80px;
+      "
+    >
+      <!-- 왼쪽: 내 세트 -->
+      <div
+        style="
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          gap: 16px;
+        "
+      >
         <!-- HOLD -->
-        <div style="
-          width: 150px;
-          height: 150px;
-          background: rgba(16,19,32,0.35);
-          border: 3px solid rgba(0,0,0,0.95);
-          box-shadow:
-            0 0 0 2px rgba(255,255,255,0.06) inset,
-            0 8px 24px rgba(0,0,0,.35);
-          backdrop-filter: blur(6px) saturate(140%);
-          -webkit-backdrop-filter: blur(6px) saturate(140%);
-          position: relative;
-        ">
-          <div style="
-            position:absolute; top:10px; left:12px;
-            color:#fff; font-weight:800; letter-spacing:.5px;
-            text-shadow:0 2px 8px rgba(0,0,0,.55);
-          ">HOLD</div>
+        <div
+          style="
+            width: 130px;
+            height: 220px;
+            background: rgba(16,19,32,0.35);
+            border: 3px solid rgba(0,0,0,0.95);
+            box-shadow:
+              0 0 0 2px rgba(255,255,255,0.06) inset,
+              0 8px 24px rgba(0,0,0,.35);
+            backdrop-filter: blur(6px) saturate(140%);
+            -webkit-backdrop-filter: blur(6px) saturate(140%);
+            position: relative;
+          "
+        >
+          <div
+            style="
+              position:absolute; top:10px; left:12px;
+              color:#fff; font-weight:800; letter-spacing:.5px;
+              text-shadow:0 2px 8px rgba(0,0,0,.55);
+            "
+          >
+            HOLD
+          </div>
         </div>
 
         <!-- 메인 필드 + 이름 -->
-        <div style="
-          display:flex;
-          flex-direction:column;
-          align-items:center;
-          gap:8px;
-        ">
-          <div class="my-field" style="
-            width: 240px;
-            aspect-ratio: 10 / 20;
-            background-color: rgba(20,28,42,0.50);
-            backdrop-filter: blur(10px) saturate(140%);
-            -webkit-backdrop-filter: blur(10px) saturate(140%);
-            border: 3px solid rgba(0,0,0,0.95);
-            box-shadow:
-              0 10px 24px rgba(0,0,0,.35),
-              inset 0 0 0 2px rgba(255,255,255,0.08);
-            border-radius: 10px;
-            overflow: hidden;
-            background-image:
-              linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
-            background-size: calc(100%/10) calc(100%/20);
-          "></div>
-          <div id="player-name-me" style="
-            color:#fff;
-            font-weight:600;
-            text-shadow:0 2px 8px rgba(0,0,0,.6);
-          "></div>
+        <div
+          style="
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            gap:8px;
+          "
+        >
+          <div
+            class="my-field"
+            style="
+              width: 260px;
+              aspect-ratio: 10 / 20;
+              background-color: rgba(20,28,42,0.50);
+              backdrop-filter: blur(10px) saturate(140%);
+              -webkit-backdrop-filter: blur(10px) saturate(140%);
+              border: 3px solid rgba(0,0,0,0.95);
+              box-shadow:
+                0 10px 24px rgba(0,0,0,.35),
+                inset 0 0 0 2px rgba(255,255,255,0.08);
+              border-radius: 10px;
+              overflow: hidden;
+              background-image:
+                linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
+              background-size: calc(100%/10) calc(100%/20);
+            "
+          ></div>
+          <div
+            id="player-name-me"
+            style="
+              color:#fff;
+              font-weight:600;
+              text-shadow:0 2px 8px rgba(0,0,0,.6);
+            "
+          ></div>
         </div>
 
         <!-- NEXT -->
-        <div style="
-          width: 150px;
-          height: 420px;
-          background: rgba(16,19,32,0.35);
-          border: 3px solid rgba(0,0,0,0.95);
-          box-shadow:
-            0 0 0 2px rgba(255,255,255,0.06) inset,
-            0 8px 24px rgba(0,0,0,.35);
-          backdrop-filter: blur(6px) saturate(140%);
-          -webkit-backdrop-filter: blur(6px) saturate(140%);
-          position: relative;
-        ">
-          <div style="
-            position:absolute; top:10px; left:12px;
-            color:#fff; font-weight:800; letter-spacing:.5px;
-            text-shadow:0 2px 8px rgba(0,0,0,.55);
-          ">NEXT</div>
+        <div
+          style="
+            width: 130px;
+            height: calc(260px * 2); /* 메인 필드 높이와 맞춤 */
+            background: rgba(16,19,32,0.35);
+            border: 3px solid rgba(0,0,0,0.95);
+            box-shadow:
+              0 0 0 2px rgba(255,255,255,0.06) inset,
+              0 8px 24px rgba(0,0,0,.35);
+            backdrop-filter: blur(6px) saturate(140%);
+            -webkit-backdrop-filter: blur(6px) saturate(140%);
+            position: relative;
+          "
+        >
+          <div
+            style="
+              position:absolute; top:10px; left:12px;
+              color:#fff; font-weight:800; letter-spacing:.5px;
+              text-shadow:0 2px 8px rgba(0,0,0,.55);
+            "
+          >
+            NEXT
+          </div>
         </div>
       </div>
 
-      <!-- 상대 세트 (오른쪽) -->
-      <div style="
-        display: flex;
-        align-items: center;
-        gap: 16px;
-      ">
+      <!-- 오른쪽: 상대 세트 -->
+      <div
+        style="
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          gap: 16px;
+        "
+      >
         <!-- HOLD -->
-        <div style="
-          width: 150px;
-          height: 150px;
-          background: rgba(16,19,32,0.35);
-          border: 3px solid rgba(0,0,0,0.95);
-          box-shadow:
-            0 0 0 2px rgba(255,255,255,0.06) inset,
-            0 8px 24px rgba(0,0,0,.35);
-          backdrop-filter: blur(6px) saturate(140%);
-          -webkit-backdrop-filter: blur(6px) saturate(140%);
-          position: relative;
-        ">
-          <div style="
-            position:absolute; top:10px; left:12px;
-            color:#fff; font-weight:800; letter-spacing:.5px;
-            text-shadow:0 2px 8px rgba(0,0,0,.55);
-          ">HOLD</div>
+        <div
+          style="
+            width: 130px;
+            height: 220px;
+            background: rgba(16,19,32,0.35);
+            border: 3px solid rgba(0,0,0,0.95);
+            box-shadow:
+              0 0 0 2px rgba(255,255,255,0.06) inset,
+              0 8px 24px rgba(0,0,0,.35);
+            backdrop-filter: blur(6px) saturate(140%);
+            -webkit-backdrop-filter: blur(6px) saturate(140%);
+            position: relative;
+          "
+        >
+          <div
+            style="
+              position:absolute; top:10px; left:12px;
+              color:#fff; font-weight:800; letter-spacing:.5px;
+              text-shadow:0 2px 8px rgba(0,0,0,.55);
+            "
+          >
+            HOLD
+          </div>
         </div>
 
         <!-- 메인 필드 + 이름 -->
-        <div style="
-          display:flex;
-          flex-direction:column;
-          align-items:center;
-          gap:8px;
-        ">
-          <div class="opp-field" style="
-            width: 240px;
-            aspect-ratio: 10 / 20;
-            background-color: rgba(20,28,42,0.50);
-            backdrop-filter: blur(10px) saturate(140%);
-            -webkit-backdrop-filter: blur(10px) saturate(140%);
-            border: 3px solid rgba(0,0,0,0.95);
-            box-shadow:
-              0 10px 24px rgba(0,0,0,.35),
-              inset 0 0 0 2px rgba(255,255,255,0.08);
-            border-radius: 10px;
-            overflow: hidden;
-            background-image:
-              linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
-            background-size: calc(100%/10) calc(100%/20);
-          "></div>
-          <div id="player-name-opponent" style="
-            color:#fff;
-            font-weight:600;
-            text-shadow:0 2px 8px rgba(0,0,0,.6);
-          "></div>
+        <div
+          style="
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            gap:8px;
+          "
+        >
+          <div
+            class="opp-field"
+            style="
+              width: 260px;
+              aspect-ratio: 10 / 20;
+              background-color: rgba(20,28,42,0.50);
+              backdrop-filter: blur(10px) saturate(140%);
+              -webkit-backdrop-filter: blur(10px) saturate(140%);
+              border: 3px solid rgba(0,0,0,0.95);
+              box-shadow:
+                0 10px 24px rgba(0,0,0,.35),
+                inset 0 0 0 2px rgba(255,255,255,0.08);
+              border-radius: 10px;
+              overflow: hidden;
+              background-image:
+                linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
+              background-size: calc(100%/10) calc(100%/20);
+            "
+          ></div>
+          <div
+            id="player-name-opponent"
+            style="
+              color:#fff;
+              font-weight:600;
+              text-shadow:0 2px 8px rgba(0,0,0,.6);
+            "
+          ></div>
         </div>
 
         <!-- NEXT -->
-        <div style="
-          width: 150px;
-          height: 420px;
-          background: rgba(16,19,32,0.35);
-          border: 3px solid rgba(0,0,0,0.95);
-          box-shadow:
-            0 0 0 2px rgba(255,255,255,0.06) inset,
-            0 8px 24px rgba(0,0,0,.35);
-          backdrop-filter: blur(6px) saturate(140%);
-          -webkit-backdrop-filter: blur(6px) saturate(140%);
-          position: relative;
-        ">
-          <div style="
-            position:absolute; top:10px; left:12px;
-            color:#fff; font-weight:800; letter-spacing:.5px;
-            text-shadow:0 2px 8px rgba(0,0,0,.55);
-          ">NEXT</div>
+        <div
+          style="
+            width: 130px;
+            height: calc(260px * 2);
+            background: rgba(16,19,32,0.35);
+            border: 3px solid rgba(0,0,0,0.95);
+            box-shadow:
+              0 0 0 2px rgba(255,255,255,0.06) inset,
+              0 8px 24px rgba(0,0,0,.35);
+            backdrop-filter: blur(6px) saturate(140%);
+            -webkit-backdrop-filter: blur(6px) saturate(140%);
+            position: relative;
+          "
+        >
+          <div
+            style="
+              position:absolute; top:10px; left:12px;
+              color:#fff; font-weight:800; letter-spacing:.5px;
+              text-shadow:0 2px 8px rgba(0,0,0,.55);
+            "
+          >
+            NEXT
+          </div>
         </div>
       </div>
-
     </div>
   `;
 
   const meNameEl = document.getElementById("player-name-me");
   const oppNameEl = document.getElementById("player-name-opponent");
 
-  // Firestore에서 플레이어 이름 가져와서 표시
+  // Firestore players 컬렉션에서 이름 바인딩
   if (roomRef) {
     onSnapshot(collection(roomRef, "players"), (snap) => {
       const players = [];
