@@ -491,7 +491,7 @@ function renderMultiPlay(roomRef, roomCode) {
         id="right-side"
         style="
           min-width: 320px;
-          max-width: 640px;
+          max-width: 720px;
           display: flex;
           align-items: flex-start;
           justify-content: center;
@@ -506,7 +506,7 @@ function renderMultiPlay(roomRef, roomCode) {
 
   if (!roomRef) return;
 
-  // players 스냅샷 구독해서 내 이름/상대 필드들 렌더링
+  // players 스냅샷 구독
   onSnapshot(collection(roomRef, "players"), (snap) => {
     const players = [];
     snap.forEach((docSnap) => players.push(docSnap.data()));
@@ -515,7 +515,7 @@ function renderMultiPlay(roomRef, roomCode) {
     const me = players.find((p) => p.uid === myUid) || null;
     const opponents = players.filter((p) => p.uid !== myUid);
 
-    // 내 이름 / 내 필드 uid 세팅
+    // 내 이름, uid 세팅
     if (meNameEl) {
       meNameEl.textContent = me ? (me.name || "나") : "나";
     }
@@ -525,7 +525,7 @@ function renderMultiPlay(roomRef, roomCode) {
 
     if (!rightSide) return;
 
-    // 상대가 0명인 경우: 안내 텍스트만
+    // 상대 없음
     if (opponents.length === 0) {
       rightSide.innerHTML = `
         <div style="color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.6);">
@@ -535,7 +535,7 @@ function renderMultiPlay(roomRef, roomCode) {
       return;
     }
 
-    // 상대가 1명일 때: 기존처럼 큰 세트 하나 (HOLD/필드/NEXT)
+    // 상대 1명: 기존처럼 큰 세트 (HOLD/필드/NEXT)
     if (opponents.length === 1) {
       const opp = opponents[0];
       rightSide.innerHTML = `
@@ -644,8 +644,7 @@ function renderMultiPlay(roomRef, roomCode) {
       return;
     }
 
-    // 🔥 상대가 2명 이상일 때: 오른쪽 영역을 그리드로, 필드 자동 축소
-    // 그리드 셀 폭은 minmax(120px, 1fr) → 인원 늘어날수록 자동으로 작아짐
+    // 🔥 상대 2명 이상: 각 플레이어마다 작은 HOLD / FIELD / NEXT 세트 카드
     const oppCardsHtml = opponents
       .map((p) => {
         return `
@@ -658,26 +657,90 @@ function renderMultiPlay(roomRef, roomCode) {
             "
           >
             <div
-              class="opp-field"
-              data-uid="${p.uid || ""}"
               style="
-                width: 150px;
-                aspect-ratio: 10 / 20;
-                background-color: rgba(20,28,42,0.50);
-                backdrop-filter: blur(10px) saturate(140%);
-                -webkit-backdrop-filter: blur(10px) saturate(140%);
-                border: 2px solid rgba(0,0,0,0.9);
-                box-shadow:
-                  0 6px 14px rgba(0,0,0,.30),
-                  inset 0 0 0 1px rgba(255,255,255,0.08);
-                border-radius: 8px;
-                overflow: hidden;
-                background-image:
-                  linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
-                  linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
-                background-size: calc(100%/10) calc(100%/20);
+                display:flex;
+                align-items:flex-start;
+                justify-content:center;
+                gap:4px;
               "
-            ></div>
+            >
+              <!-- HOLD (mini) -->
+              <div
+                style="
+                  width: 40px;
+                  height: 80px;
+                  background: rgba(16,19,32,0.35);
+                  border: 2px solid rgba(0,0,0,0.9);
+                  box-shadow:
+                    0 0 0 1px rgba(255,255,255,0.05) inset,
+                    0 4px 10px rgba(0,0,0,.30);
+                  backdrop-filter: blur(4px) saturate(130%);
+                  -webkit-backdrop-filter: blur(4px) saturate(130%);
+                  position: relative;
+                "
+              >
+                <div
+                  style="
+                    position:absolute; top:6px; left:6px;
+                    color:#fff; font-size:9px; font-weight:700;
+                    text-shadow:0 1px 4px rgba(0,0,0,.6);
+                  "
+                >
+                  HOLD
+                </div>
+              </div>
+
+              <!-- FIELD (mini) -->
+              <div
+                class="opp-field"
+                data-uid="${p.uid || ""}"
+                style="
+                  width: 110px;
+                  aspect-ratio: 10 / 20;
+                  background-color: rgba(20,28,42,0.50);
+                  backdrop-filter: blur(8px) saturate(130%);
+                  -webkit-backdrop-filter: blur(8px) saturate(130%);
+                  border: 2px solid rgba(0,0,0,0.9);
+                  box-shadow:
+                    0 6px 14px rgba(0,0,0,.30),
+                    inset 0 0 0 1px rgba(255,255,255,0.08);
+                  border-radius: 8px;
+                  overflow: hidden;
+                  background-image:
+                    linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
+                  background-size: calc(100%/10) calc(100%/20);
+                "
+              ></div>
+
+              <!-- NEXT (mini) -->
+              <div
+                style="
+                  width: 40px;
+                  height: 80px;
+                  background: rgba(16,19,32,0.35);
+                  border: 2px solid rgba(0,0,0,0.9);
+                  box-shadow:
+                    0 0 0 1px rgba(255,255,255,0.05) inset,
+                    0 4px 10px rgba(0,0,0,.30);
+                  backdrop-filter: blur(4px) saturate(130%);
+                  -webkit-backdrop-filter: blur(4px) saturate(130%);
+                  position: relative;
+                "
+              >
+                <div
+                  style="
+                    position:absolute; top:6px; left:6px;
+                    color:#fff; font-size:9px; font-weight:700;
+                    text-shadow:0 1px 4px rgba(0,0,0,.6);
+                  "
+                >
+                  NEXT
+                </div>
+              </div>
+            </div>
+
+            <!-- 이름 -->
             <div
               style="
                 color:#fff;
@@ -685,7 +748,7 @@ function renderMultiPlay(roomRef, roomCode) {
                 font-weight:600;
                 text-shadow:0 2px 6px rgba(0,0,0,.6);
                 text-align:center;
-                max-width: 150px;
+                max-width: 200px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -702,7 +765,7 @@ function renderMultiPlay(roomRef, roomCode) {
       <div
         style="
           display:grid;
-          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
           gap: 12px;
           justify-items: center;
           width: 100%;
