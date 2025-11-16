@@ -1,4 +1,8 @@
 ﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+import { createSingleGame } from "./tetris-engine.js";
+
+let currentSingleCleanup = null;
+
 import {
   getAuth,
   onAuthStateChanged,
@@ -333,39 +337,218 @@ function renderHomeMenu() {
   });
 }
 
-/* ===== 플레이 화면(싱글 전용) ===== */
 function renderPlayScreen(mode = "single") {
   if (!contentArea) return;
   if (mode !== "single") {
     console.warn("[renderPlayScreen] Single-player only. Ignored mode:", mode);
     return;
   }
-  const title = "싱글 플레이";
-  contentArea.innerHTML = `
 
-    <div class="stage-wrap">
-      <div class="stage">
+  // 이전 싱글 게임 정리
+  if (typeof currentSingleCleanup === "function") {
+    currentSingleCleanup();
+    currentSingleCleanup = null;
+  }
+
+  contentArea.innerHTML = `
+    <div class="stage-wrap" style="position:relative;">
+      <!-- 실제 게임 화면 -->
+      <div class="stage" id="single-stage">
         <div class="top-ui">
-          <button id="play-back" class="back-btn" type="button">← 메뉴</button>
-          <div class="title">${title}</div>
+          <!-- 좌우는 더미, 가운데에 점수 패널 -->
+          <div style="width:66px"></div>
+          <div class="score-panel">
+            <div class="score-row">
+              최고 점수:
+              <span id="best-score">0</span>
+            </div>
+            <div class="score-row">
+              현재 점수:
+              <span id="current-score">0</span>
+            </div>
+          </div>
           <div style="width:66px"></div>
         </div>
 
-        <div class="box left"><div class="label">HOLD</div></div>
+        <!-- 왼쪽: HOLD 박스 -->
+        <div class="box left">
+          <div class="label">HOLD</div>
+          <div id="hold-view" class="mini-box-inner"></div>
+        </div>
 
-        <!-- 중앙: 그리드만 표시 -->
+        <!-- 중앙: 메인 필드 -->
         <div class="play-grid">
           <div class="field" role="img" aria-label="10×20 grid"></div>
         </div>
 
-        <div class="box right"><div class="label">NEXT</div></div>
+        <!-- 오른쪽: NEXT 박스 -->
+        <div class="box right">
+          <div class="label">NEXT</div>
+          <div id="next-view" class="mini-box-inner"></div>
+        </div>
+      </div>
+
+      <!-- 게임 오버 오버레이 : 처음엔 display:none -->
+      <div
+        id="single-gameover-overlay"
+        style="
+          position:absolute;
+          inset:0;
+          display:none;
+          align-items:center;
+          justify-content:center;
+          pointer-events:none;
+        "
+      >
+        <div
+          class="gameover-panel"
+          style="
+            background:rgba(0,0,0,0.78);
+            padding:24px 32px;
+            border-radius:16px;
+            box-shadow:0 12px 30px rgba(0,0,0,0.6);
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            gap:16px;
+            pointer-events:auto;
+          "
+        >
+          <div
+            class="gameover-title"
+            style="
+              font-size:20px;
+              font-weight:700;
+              color:#fff;
+              margin-bottom:4px;
+            "
+          >
+            게임 종료
+          </div>
+          <div
+            class="gameover-actions"
+            style="
+              display:flex;
+              flex-direction:column;
+              align-items:center;
+              gap:10px;
+              margin-top:4px;
+            "
+          >
+            <button
+              id="btn-retry"
+              type="button"
+              style="
+                min-width:220px;
+                height:46px;
+                font-size:15px;
+                font-weight:600;
+                border-radius:999px;
+                border:none;
+                padding:0 20px;
+                background:#2be47f;
+                color:#04110a;
+                cursor:pointer;
+              "
+            >
+              다시 하기
+            </button>
+            <button
+              id="btn-main-menu"
+              type="button"
+              style="
+                min-width:220px;
+                height:46px;
+                font-size:15px;
+                font-weight:500;
+                border-radius:999px;
+                border:1px solid rgba(255,255,255,0.4);
+                padding:0 20px;
+                background:transparent;
+                color:#f5f5f5;
+                cursor:pointer;
+              "
+            >
+              메인 메뉴
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   `;
 
-  document.getElementById("play-back")?.addEventListener("click", () => {
+  const fieldEl = contentArea.querySelector(".field");
+  const stageEl = document.getElementById("single-stage");
+  const overlayEl = document.getElementById("single-gameover-overlay");
+
+  const bestScoreEl = document.getElementById("best-score");
+  const currentScoreEl = document.getElementById("current-score");
+
+  // 로컬 스토리지에서 최고점 불러오기
+  let bestScore = 0;
+  try {
+    bestScore = Number(localStorage.getItem("tetris-best-score") || "0") || 0;
+  } catch {
+    bestScore = 0;
+  }
+  if (bestScoreEl) bestScoreEl.textContent = String(bestScore);
+  if (currentScoreEl) currentScoreEl.textContent = "0";
+
+  function showGameOverOverlay() {
+    // 플레이 화면 블러 + 어둡게 + 입력 막기
+    if (stageEl) {
+      stageEl.style.filter = "blur(4px)";
+      stageEl.style.opacity = "0.45";
+      stageEl.style.pointerEvents = "none";
+    }
+    if (overlayEl) {
+      overlayEl.style.display = "flex";   // ← 여기서만 보이게
+    }
+  }
+
+  // 버튼 이벤트
+  const mainBtn = document.getElementById("btn-main-menu");
+  const retryBtn = document.getElementById("btn-retry");
+
+  // 메인 메뉴 → 홈 메뉴
+  mainBtn?.addEventListener("click", () => {
+    if (typeof currentSingleCleanup === "function") {
+      currentSingleCleanup();
+      currentSingleCleanup = null;
+    }
     renderHomeMenu();
   });
+
+  // 다시 하기 → 싱글 재시작
+  retryBtn?.addEventListener("click", () => {
+    if (typeof currentSingleCleanup === "function") {
+      currentSingleCleanup();
+      currentSingleCleanup = null;
+    }
+    renderPlayScreen("single");
+  });
+
+  // 싱글 게임 엔진 시작
+  if (fieldEl) {
+    currentSingleCleanup = createSingleGame(fieldEl, window.tetrisInput, {
+      dropInterval: 900,
+      onGameOver: () => {
+        // 엔진에서 진짜 게임오버라고 판단했을 때만 호출됨
+        showGameOverOverlay();
+      },
+      onScoreChange: (score /*, detail */) => {
+        if (currentScoreEl) currentScoreEl.textContent = String(score);
+
+        if (score > bestScore) {
+          bestScore = score;
+          if (bestScoreEl) bestScoreEl.textContent = String(bestScore);
+          try {
+            localStorage.setItem("tetris-best-score", String(bestScore));
+          } catch {}
+        }
+      },
+    });
+  }
 }
 
 /* ===== 멀티플레이 실제 게임 화면 ===== */

@@ -572,6 +572,8 @@ border-color: rgba(255,255,255,0.28);
         background: transparent; /* 박스 제거 */
       }
      .field {
+      position: relative;
+
   height: 100%;
   aspect-ratio: 10 / 20;
 
@@ -834,3 +836,11 @@ border-color: rgba(255,255,255,0.28);
             .warn { color: #ffeb3b; }
             .err { color: #ff6b6b; }
             .ok { color: #c8ffdd; }
+
+
+            .mini-box-inner {
+  position: relative;
+  width: 100%;
+  height: calc(100% - 24px); /* 라벨 높이만큼 빼기 (대충이면 됨) */
+  margin-top: 8px;
+}
