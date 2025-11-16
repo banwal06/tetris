@@ -374,7 +374,7 @@ function renderMultiPlay(roomRef, roomCode) {
   const user = auth.currentUser;
   if (!roomRef) return;
 
-  // 기본 레이아웃: 상단 헤더 제거, 가운데에 필드들만 배치
+  // 기본 레이아웃: 상단별도 UI 없이 필드들만 배치
   contentArea.innerHTML = `
     <div
       style="
@@ -529,7 +529,7 @@ function renderMultiPlay(roomRef, roomCode) {
       } catch (e) {
         console.warn("[brand-exit] failed to delete player doc", e);
       }
-      renderMultiEntry(); // 멀티 진입 화면으로
+      renderMultiEntry();
     };
   }
 
@@ -539,8 +539,10 @@ function renderMultiPlay(roomRef, roomCode) {
 
   // 🔹 이전 스냅샷 상태 (죽음 감지용)
   const prevState = new Map(); // uid -> { isAlive }
+  // 🔹 이 클라에서 게임 종료 처리 한 번만 수행
+  let gameEndedForMe = false;
 
-  // players 스냅샷 구독 → 누가 나가거나/죽어도 즉시 반영
+  // players 스냅샷 구독
   onSnapshot(collection(roomRef, "players"), (snap) => {
     const players = [];
     snap.forEach((docSnap) => players.push(docSnap.data()));
@@ -576,7 +578,20 @@ function renderMultiPlay(roomRef, roomCode) {
       }
     }
 
-    // 🔹 spectator / 내 이름 UI
+    // 🔹 현재 살아있는 플레이어 수 계산 (isAlive !== false)
+    const alivePlayers = players.filter((p) => p.isAlive !== false);
+    const aliveCount = alivePlayers.length;
+
+    // 한 명 이하만 남으면(죽어서든 나가서든) 이 클라에서는 게임 종료 처리 → 멀티 대기 화면으로
+    if (!gameEndedForMe && aliveCount <= 1) {
+      gameEndedForMe = true;
+      updatePrevState(prevState, players);
+      // 약간 텀을 주고 나가도 되고, 바로 나가도 됨
+      renderMultiEntry();
+      return;
+    }
+
+    // 🔹 내 이름 / 관전 상태
     if (meNameEl) {
       if (!me) {
         meNameEl.textContent = "나";
@@ -587,6 +602,7 @@ function renderMultiPlay(roomRef, roomCode) {
       }
     }
 
+    // 🔹 내 필드 스타일 (죽으면 회색)
     if (myFieldEl && myUid) {
       myFieldEl.setAttribute("data-uid", myUid);
       if (me && me.isAlive === false) {
@@ -603,7 +619,7 @@ function renderMultiPlay(roomRef, roomCode) {
       return;
     }
 
-    // 🔹 상대 분류: 살아있는 / 죽은지 2초 이내(회색 유지) / 그 외는 안 보임
+    // 🔹 상대 분류: 살아있는 / 죽은지 2초 이내
     const aliveOpponents = [];
     const fadingOpponents = [];
 
@@ -630,9 +646,23 @@ function renderMultiPlay(roomRef, roomCode) {
       }
     }
 
-    const opponents = [...aliveOpponents, ...fadingOpponents];
+    let opponents = [...aliveOpponents, ...fadingOpponents];
 
-    // 상대 0명 → 안내 텍스트
+    // 🔹 슬롯 순서 고정: joinedAt 기준(없으면 uid)으로 정렬
+    opponents.sort((a, b) => {
+      const aJ = a.joinedAt && typeof a.joinedAt.toMillis === "function"
+        ? a.joinedAt.toMillis()
+        : 0;
+      const bJ = b.joinedAt && typeof b.joinedAt.toMillis === "function"
+        ? b.joinedAt.toMillis()
+        : 0;
+
+      if (aJ !== bJ) return aJ - bJ;
+      if (a.uid && b.uid && a.uid !== b.uid) return a.uid < b.uid ? -1 : 1;
+      return 0;
+    });
+
+    // 🔹 상대 0명 → 대기 문구
     if (opponents.length === 0) {
       rightSide.innerHTML = `
         <div style="color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.6);">
@@ -643,7 +673,7 @@ function renderMultiPlay(roomRef, roomCode) {
       return;
     }
 
-    // 상대 1명 → 처음 두 명 레이아웃(큰 HOLD / FIELD / NEXT 세트 하나)
+    // 🔹 상대 1명 → 큰 세트 하나
     if (opponents.length === 1) {
       const opp = opponents[0];
       const isDead = opp.isAlive === false;
@@ -754,11 +784,13 @@ function renderMultiPlay(roomRef, roomCode) {
       `;
 
       updatePrevState(prevState, players);
-      return; // ✅ 2명만 남으면 항상 이 레이아웃
+      return; // 2명만 남으면 항상 이 레이아웃
     }
 
-    // 🔥 상대 2명 이상 → 오른쪽을 그리드 + 카드 크기 동적 조절
+    // 🔥 상대 2명 이상 → 오른쪽 2×N 그리드
     const oppCount = opponents.length;
+
+    // 필드 폭: 인원 많을수록 작아짐
     const maxFieldWidth = 140;
     const minFieldWidth = 90;
     const clamped = Math.min(Math.max(oppCount, 2), 6); // 2~6
@@ -768,6 +800,7 @@ function renderMultiPlay(roomRef, roomCode) {
     );
     const holdNextWidth = Math.round(fieldWidth * 0.33);
     const cardTotalWidth = fieldWidth + holdNextWidth * 2 + 8;
+    const cols = Math.min(2, oppCount); // 항상 최대 2열
 
     const oppCardsHtml = opponents
       .map((p) => {
@@ -895,8 +928,9 @@ function renderMultiPlay(roomRef, roomCode) {
       <div
         style="
           display:grid;
-          grid-template-columns: repeat(auto-fit, minmax(${cardTotalWidth}px, 1fr));
+          grid-template-columns: repeat(${cols}, minmax(${cardTotalWidth}px, 1fr));
           gap: 12px;
+          justify-content: center;
           justify-items: center;
           width: 100%;
         "
@@ -953,7 +987,6 @@ function renderMultiPlay(roomRef, roomCode) {
     }, 2400);
   }
 }
-
 
 /* ===== 멀티플레이 진입 화면 ===== */
 function renderMultiEntry() {
