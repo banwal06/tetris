@@ -578,18 +578,30 @@ function renderMultiPlay(roomRef, roomCode) {
       }
     }
 
-    // 🔹 현재 살아있는 플레이어 수 계산 (isAlive !== false)
-    const alivePlayers = players.filter((p) => p.isAlive !== false);
-    const aliveCount = alivePlayers.length;
+// 🔹 현재 살아있는 플레이어 수 계산 (isAlive !== false)
+const alivePlayers = players.filter((p) => p.isAlive !== false);
+const aliveCount = alivePlayers.length;
 
-    // 한 명 이하만 남으면(죽어서든 나가서든) 이 클라에서는 게임 종료 처리 → 멀티 대기 화면으로
-    if (!gameEndedForMe && aliveCount <= 1) {
-      gameEndedForMe = true;
-      updatePrevState(prevState, players);
-      // 약간 텀을 주고 나가도 되고, 바로 나가도 됨
-      renderMultiEntry();
-      return;
+// 한 명 이하만 남으면(죽어서든 나가서든) 이 클라에서는 게임 종료 처리
+if (!gameEndedForMe && aliveCount <= 1) {
+  gameEndedForMe = true;
+  updatePrevState(prevState, players);
+
+  // 나 자신 정보 기준으로 어디로 돌려보낼지 결정
+  if (me) {
+    if (me.isHost) {
+      // ✅ 방장: 방 만들기 했을 때의 "대기실" 화면으로
+      renderCreateRoom();
+    } else {
+      // ✅ 게스트: 참가자 대기실 화면으로
+      renderGuestLobby(roomRef, roomCode);
     }
+  } else {
+    // 혹시 모를 예외: 사용자 정보가 없으면 멀티 메뉴로
+    renderMultiEntry();
+  }
+  return;
+}
 
     // 🔹 내 이름 / 관전 상태
     if (meNameEl) {
